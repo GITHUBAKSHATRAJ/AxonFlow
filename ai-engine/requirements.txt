@@ -1,0 +1,17 @@
+# API Server & Validation
+fastapi
+uvicorn
+pydantic
+
+# AI & LLM Framework
+langchain
+langchain-ollama
+langchain-core
+
+# HTTP Client (for Ollama model listing)
+httpx
+
+# Web Scraping Tools
+requests
+beautifulsoup4
+duckduckgo-search

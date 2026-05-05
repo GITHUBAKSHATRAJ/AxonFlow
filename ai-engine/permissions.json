@@ -1,0 +1,8 @@
+{
+  "user_id": "akshat_123",
+  "allowed_tools": {
+    "web_search": true,
+    "file_read": false
+  },
+  "max_nodes": 500
+}
