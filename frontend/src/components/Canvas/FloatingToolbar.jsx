@@ -1,4 +1,16 @@
 import React from 'react';
+import { 
+    Edit2, 
+    Plus, 
+    Trash2, 
+    Copy, 
+    Download, 
+    FileText, 
+    Link as LinkIcon, 
+    Paperclip, 
+    Sparkles,
+    Upload
+} from 'lucide-react';
 
 const FloatingToolbar = ({ config, onClose }) => {
     if (!config) return null;
@@ -11,39 +23,56 @@ const FloatingToolbar = ({ config, onClose }) => {
             style={{
                 position: 'fixed',
                 left: x,
-                top: y - 54,
+                top: y - 60,
                 transform: 'translateX(-50%)',
                 backgroundColor: 'rgba(24, 24, 42, 0.95)',
-                border: '1px solid rgba(192, 132, 252, 0.3)',
-                borderRadius: '12px',
-                padding: '8px 12px',
+                border: '1px solid rgba(192, 132, 252, 0.2)',
+                borderRadius: '16px',
+                padding: '6px',
                 display: 'flex',
-                gap: '4px',
-                boxShadow: '0 15px 35px rgba(0,0,0,0.6)',
+                gap: '2px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
                 zIndex: 9999,
                 alignItems: 'center',
-                backdropFilter: 'blur(12px)',
+                backdropFilter: 'blur(16px)',
             }}
         >
-            <Btn icon="✏️" label="Rename (F2)" onClick={actions.rename} />
-            <Btn icon="➕" label="Add Child (Tab)" onClick={actions.addChild} />
-            <Btn icon="🗑️" label="Delete (Del)" onClick={actions.deleteNode} danger />
+            <Btn icon={<Edit2 size={16} />} label="Rename (F2)" onClick={actions.rename} />
+            <Btn icon={<Plus size={18} />} label="Add Child (Tab)" onClick={actions.addChild} />
+            <Btn icon={<Trash2 size={16} />} label="Delete (Del)" onClick={actions.deleteNode} danger />
+            
             <Divider />
-            <Btn icon="📋" label="Copy Branch" onClick={actions.copy} />
-            <Btn icon="📥" label="Paste Branch" onClick={actions.paste} />
+            
+            <Btn icon={<Copy size={16} />} label="Copy Branch" onClick={actions.copy} />
+            <Btn icon={<Download size={16} />} label="Quick Paste" onClick={actions.paste} />
+            <Btn icon={<Upload size={16} />} label="Bulk Import (Indented Text)" onClick={actions.import} accent />
+            
             <Divider />
-            <Btn icon="📝" label="Notes" onClick={actions.openNotes} />
-            <Btn icon="🔗" label="Links" onClick={actions.openLinks} />
-            <Btn icon="📎" label="Files" onClick={actions.openFiles} />
+            
+            <Btn icon={<FileText size={16} />} label="Notes" onClick={actions.openNotes} />
+            <Btn icon={<LinkIcon size={16} />} label="Links" onClick={actions.openLinks} />
+            <Btn icon={<Paperclip size={16} />} label="Files" onClick={actions.openFiles} />
+            
             <Divider />
-            <Btn icon="🤖" label="AI Generate" onClick={actions.openAI} accent />
+            
+            <Btn icon={<Sparkles size={16} />} label="AI Generate" onClick={actions.openAI} ai />
         </div>
     );
 };
 
-const Btn = ({ icon, label, onClick, danger, accent }) => {
+const Btn = ({ icon, label, onClick, danger, accent, ai }) => {
     const [hovered, setHovered] = React.useState(false);
-    const baseColor = danger ? '#f87171' : accent ? '#c084fc' : '#e0e0e0';
+    
+    let color = '#9ca3af';
+    let bg = 'transparent';
+    
+    if (hovered) {
+        bg = 'rgba(255, 255, 255, 0.08)';
+        color = '#fff';
+        if (danger) { bg = 'rgba(239, 68, 68, 0.15)'; color = '#f87171'; }
+        if (accent) { bg = 'rgba(99, 102, 241, 0.15)'; color = '#818cf8'; }
+        if (ai) { bg = 'rgba(192, 132, 252, 0.15)'; color = '#c084fc'; }
+    }
     
     return (
         <button
@@ -52,13 +81,13 @@ const Btn = ({ icon, label, onClick, danger, accent }) => {
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
-                background: hovered ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                background: bg,
                 border: 'none',
-                color: hovered ? '#fff' : baseColor,
-                fontSize: '18px',
+                color: color,
                 cursor: 'pointer',
-                padding: '6px 8px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -72,7 +101,7 @@ const Btn = ({ icon, label, onClick, danger, accent }) => {
 };
 
 const Divider = () => (
-    <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+    <div style={{ width: '1px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 6px' }} />
 );
 
 export default FloatingToolbar;
