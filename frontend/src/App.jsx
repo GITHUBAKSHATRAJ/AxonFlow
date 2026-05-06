@@ -1,75 +1,119 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { SignedIn, SignedOut, useAuth } from '@clerk/clerk-react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/authContext';
 import { setupAxiosInterceptors } from './services/api/client';
 
+// Pages
+import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
+import MyMaps from './pages/MyMaps';
+import WorkspaceView from './pages/WorkspaceView';
+import LandingPage from './pages/LandingPage';
 
-// Dummy components for non-editor pages
-const Dashboard = () => (
-    <div className="p-10 text-white bg-[#121212] min-h-screen">
-        <h1 className="text-3xl font-bold mb-4">AxonFlow Dashboard</h1>
-        <p className="text-gray-400">Welcome to your workspace. (Migration in progress...)</p>
-        <button 
-            className="mt-6 px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition"
-            onClick={() => window.location.href = '/map/test-map'}
-        >
-            Enter Test Map
-        </button>
-    </div>
-);
+/**
+ * Protected Route Component
+ * Redirects to landing page if not authenticated
+ */
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
-const LoginPage = () => (
-    <div className="flex items-center justify-center min-h-screen bg-[#0f111a] text-white">
-        <div className="text-center">
-            <h1 className="text-4xl font-bold mb-2">AxonFlow</h1>
-            <p className="text-gray-500 mb-8">Next-Gen Mind Mapping</p>
-            {/* Clerk's SignInButton would go here in a real scenario */}
-            <div className="p-8 bg-[#1a1a2a] rounded-2xl border border-white/5">
-                Please Sign In via Clerk
-            </div>
-        </div>
-    </div>
-);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/welcome" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
 
 function App() {
-    const { getToken } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-    useEffect(() => {
-        setupAxiosInterceptors(getToken);
-    }, [getToken]);
+  useEffect(() => {
+    // Maintain compatibility with interceptor setup
+    setupAxiosInterceptors();
+  }, []);
 
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/login" element={<LoginPage />} />
+  return (
+    <Routes>
+      {/* Public Landing Page */}
+      <Route path="/welcome" element={<LandingPage />} />
 
-                <Route path="/" element={
-                    <>
-                        <SignedIn>
-                            <Dashboard />
-                        </SignedIn>
-                        <SignedOut>
-                            <Navigate to="/login" replace />
-                        </SignedOut>
-                    </>
-                } />
+      {/* Protected App Routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-                <Route path="/map/:id" element={
-                    <>
-                        <SignedIn>
-                            <Editor />
-                        </SignedIn>
-                        <SignedOut>
-                            <Navigate to="/login" replace />
-                        </SignedOut>
-                    </>
-                } />
+      <Route
+        path="/maps"
+        element={
+          <ProtectedRoute>
+            <MyMaps />
+          </ProtectedRoute>
+        }
+      />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </BrowserRouter>
-    );
+      <Route
+        path="/workspaces"
+        element={
+          <ProtectedRoute>
+            <WorkspaceView />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/workspaces/:workspaceName"
+        element={
+          <ProtectedRoute>
+            <WorkspaceView />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/favorites"
+        element={
+          <ProtectedRoute>
+            <MyMaps filter="favorites" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/trash"
+        element={
+          <ProtectedRoute>
+            <MyMaps filter="trash" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/map/:id"
+        element={
+          <ProtectedRoute>
+            <Editor />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Redirect all other routes to Dashboard (or Welcome if not logged in) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default App;

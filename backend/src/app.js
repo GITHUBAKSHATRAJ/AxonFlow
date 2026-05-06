@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const { ClerkExpressWithAuth } = require('@clerk/clerk-sdk-node');
 
 // In AxonFlow, we will eventually split these into multiple route files
 // For now, we'll keep the placeholder for our map routes
@@ -12,9 +11,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 2. AUTHENTICATION (Clerk)
-// We use WithAuth to allow the request to proceed, but we check req.auth in controllers
-app.use(ClerkExpressWithAuth({}));
+// 2. AUTHENTICATION (Mock for Development)
+app.use((req, res, next) => {
+    // Extract userId from header or default to user_demo_123
+    const userId = req.headers['x-user-id'] || 'user_demo_123';
+    req.auth = { userId };
+    next();
+});
 
 // 3. ROUTES
 app.use('/api', apiRoutes);

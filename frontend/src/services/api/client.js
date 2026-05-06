@@ -7,25 +7,25 @@ export const api = axios.create({
     baseURL: API_BASE_URL,
 });
 
-let currentInterceptor = null;
+// Hardcoded user ID for development
+const DEMO_USER_ID = 'user_demo_123';
 
 /**
- * Setup Clerk authentication interceptor
+ * Static auth interceptor for demo/development
  */
-export const setupAxiosInterceptors = (getToken) => {
-    if (currentInterceptor !== null) {
-        api.interceptors.request.eject(currentInterceptor);
-    }
+api.interceptors.request.use((config) => {
+    // Attach hardcoded user ID to headers
+    config.headers['x-user-id'] = DEMO_USER_ID;
+    
+    // In a real app, you'd check for a token in localStorage here
+    // For now, we just identify as the demo user
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
 
-    currentInterceptor = api.interceptors.request.use(async (config) => {
-        try {
-            const token = await getToken();
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        } catch (e) {
-            console.error('Failed to get token', e);
-        }
-        return config;
-    });
+// Mock setup function to maintain compatibility with existing calls in App.jsx
+export const setupAxiosInterceptors = () => {
+    // No longer needed but kept to avoid breaking App.jsx temporarily
+    console.log('Axios interceptors ready (Mock Mode)');
 };
