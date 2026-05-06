@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, AlignCenter, CircleDot, Palette } from 'lucide-react';
+import { LayoutGrid, AlignCenter, CircleDot, Palette, Upload } from 'lucide-react';
 import { COLOR_PALETTES } from '../../utils/flowUtils';
 
 const ActionToolbar = ({ 
@@ -8,7 +8,8 @@ const ActionToolbar = ({
     colorPalette, 
     setColorPalette,
     showPaletteMenu,
-    setShowPaletteMenu
+    setShowPaletteMenu,
+    onOpenImport
 }) => {
     return (
         <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 100, display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -38,6 +39,27 @@ const ActionToolbar = ({
                     <Icon size={15} />{label}
                 </button>
             ))}
+
+            <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+
+            {/* Bulk Import Button */}
+            <button 
+                onClick={onOpenImport}
+                title="Bulk Import Indented Text"
+                style={{
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    color: '#818cf8',
+                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    cursor: 'pointer', backdropFilter: 'blur(8px)',
+                    fontSize: '12px', fontWeight: 600,
+                    transition: 'all 0.2s'
+                }}
+            >
+                <Upload size={15} />Import
+            </button>
 
             <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 

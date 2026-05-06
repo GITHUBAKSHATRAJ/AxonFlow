@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import CanvasContainer from '../components/Canvas/CanvasContainer';
+import TopBar from '../components/TopBar';
 import * as nodeApi from '../services/api/nodeApi';
 import * as mapApi from '../services/api/mapApi';
+import BulkImportModal from '../components/Modals/BulkImportModal';
 
 const Editor = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
     const [backendNodes, setBackendNodes] = useState([]);
     const [mapName, setMapName] = useState('Loading...');
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
 
     // Load Map Data from our new modular API
     useEffect(() => {
@@ -29,72 +32,43 @@ const Editor = () => {
             });
     }, [id]);
 
-    const handleUpdateMapName = useCallback((newName) => {
+    const handleUpdateMapName = useCallback(async (newName) => {
         setMapName(newName);
+        setIsSaving(true);
         // Optimistically update root node name in the list
         setBackendNodes(prev =>
             prev.map(n => (!n.parentId ? { ...n, name: newName } : n))
         );
-        mapApi.updateMapAttributes(id, { name: newName }).catch(err => console.error('Rename error:', err));
+        try {
+            await mapApi.updateMapAttributes(id, { name: newName });
+        } catch (err) {
+            console.error('Rename error:', err);
+        } finally {
+            setIsSaving(false);
+        }
     }, [id]);
 
     return (
-        <div style={{
-            width: '100vw',
-            height: '100vh',
-            overflow: 'hidden',
-            backgroundColor: '#121212',
-            color: '#ffffff',
-            position: 'relative',
-        }}>
-            {/* Simple Header for now */}
-            <div style={{
-                height: '60px',
-                background: '#1a1a2a',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 20px',
-                position: 'absolute',
-                top: 0, left: 0, right: 0,
-                zIndex: 1000,
-                justifyContent: 'space-between'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button 
-                        onClick={() => navigate('/')}
-                        style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '20px' }}
-                    >
-                        ←
-                    </button>
-                    <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#fff' }}>{mapName}</h1>
-                </div>
-                <div style={{ color: '#555', fontSize: '12px' }}>AxonFlow v1.0</div>
-            </div>
+        <div className="w-screen h-screen overflow-hidden bg-[#0f111a] text-white relative">
+            <TopBar 
+                mapName={mapName}
+                onUpdateMapName={handleUpdateMapName}
+                isSaving={isSaving}
+                onBulkImport={() => setIsImportOpen(true)}
+            />
 
-            <div style={{
-                width: '100%',
-                height: '100%',
-                paddingTop: '60px',
-                boxSizing: 'border-box',
-                position: 'relative',
-            }}>
+            <div className="w-full h-full pt-[60px] box-border relative">
                 {isLoading ? (
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        textAlign: 'center',
-                        color: '#c084fc',
-                    }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px', animation: 'pulse 1.5s infinite' }}>🧠</div>
-                        <div style={{ fontSize: '16px', fontWeight: 600 }}>Syncing with AxonFlow...</div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f111a] z-50">
+                        <div className="text-5xl mb-6 animate-bounce">🧠</div>
+                        <div className="text-lg font-bold text-[#6366f1] animate-pulse uppercase tracking-[0.2em]">Syncing AxonFlow...</div>
                     </div>
                 ) : (
                     <CanvasContainer
                         mapId={id}
                         initialNodes={backendNodes}
+                        externalImportOpen={isImportOpen}
+                        onCloseExternalImport={() => setIsImportOpen(false)}
                     />
                 )}
             </div>

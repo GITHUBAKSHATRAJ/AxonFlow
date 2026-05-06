@@ -83,6 +83,18 @@ class NodeService {
     }
 
     /**
+     * Bulk create multiple nodes
+     */
+    async bulkCreateNodes(userId, nodesData) {
+        if (!Array.isArray(nodesData)) throw new Error('Invalid nodes data');
+        const nodesToCreate = nodesData.map(data => ({
+            ...data,
+            userId
+        }));
+        return await Node.insertMany(nodesToCreate);
+    }
+
+    /**
      * Toggle node expansion state
      */
     async toggleExpansion(nodeId, userId, isExpanded) {

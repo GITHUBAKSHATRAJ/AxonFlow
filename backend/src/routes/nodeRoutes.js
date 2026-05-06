@@ -9,5 +9,6 @@ router.patch('/:id', nodeController.updateNode);
 router.patch('/:id/position', nodeController.updateNodePosition);
 router.delete('/:id', nodeController.deleteNode);
 router.post('/bulk-update', nodeController.bulkUpdateNodes);
+router.post('/bulk-create', nodeController.bulkCreateNodes);
 
 module.exports = router;

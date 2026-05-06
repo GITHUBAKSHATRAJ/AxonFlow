@@ -14,6 +14,8 @@ import nodeTypes from './NodeRegistry';
 import D3BezierEdge from './D3BezierEdge';
 import ActionToolbar from './ActionToolbar';
 import FloatingToolbar from './FloatingToolbar';
+import BulkImportModal from '../Modals/BulkImportModal';
+import * as nodeApi from '../../services/api/nodeApi';
 
 // Hooks
 import { useCanvasState } from './hooks/useCanvasState';
@@ -23,7 +25,7 @@ import { useDragReparent } from './hooks/useDragReparent';
 
 const edgeTypes = { d3Bezier: D3BezierEdge };
 
-const MindMapInner = ({ mapId, initialNodes }) => {
+const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternalImport }) => {
     // 1. Data & Layout State
     const {
         backendNodes,
@@ -55,6 +57,7 @@ const MindMapInner = ({ mapId, initialNodes }) => {
     const [linksOpen, setLinksOpen] = useState(false);
     const [filesOpen, setFilesOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
 
     // 3. Business Actions
     const {
@@ -93,11 +96,66 @@ const MindMapInner = ({ mapId, initialNodes }) => {
         deleteNode: () => handleDeleteNode(rfNode.id, rfNode.data.name),
         copy: () => handleCopy(rfNode),
         paste: () => handlePaste(rfNode.id),
+        import: () => {
+            setFocusedNodeId(rfNode.id); // Ensure this node is the target
+            setImportOpen(true);
+        },
         openNotes: () => openNotes(rfNode),
         openLinks: () => openLinks(rfNode),
         openFiles: () => openFiles(rfNode),
         openAI: () => openAI(rfNode),
     }), [openNodeInput, handleDeleteNode, handleCopy, handlePaste, openNotes, openLinks, openFiles, openAI]);
+
+    // ── Bulk Import Logic ──
+    const handleBulkImport = useCallback(async (parsedNodes) => {
+        // If no root is selected, we'll attach to the actual root of the map
+        const targetParentId = focusedNodeId || backendNodes.find(n => !n.parentId)?.id;
+        if (!targetParentId) {
+            alert('Please select a parent node or create a root first.');
+            return;
+        }
+
+        const nodesToCreate = parsedNodes.map(({ tempId, parentTempId, ...rest }) => ({
+            ...rest,
+            mapId,
+            // If it has a parentTempId, find the new real ID of that parent in our list
+            // But wait, insertMany returns new nodes with real IDs.
+            // We need to preserve hierarchy.
+        }));
+
+        // Actually, let's keep it simple: 
+        // 1. Generate real ObjectIds on frontend for all new nodes
+        // 2. Map temp hierarchy to real IDs
+        // 3. Insert all at once.
+
+        const generateObjectId = () => [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+        const idMap = { null: targetParentId }; // Map null (top level of import) to the selected parent
+        
+        parsedNodes.forEach(n => {
+            idMap[n.tempId] = generateObjectId();
+        });
+
+        const finalNodes = parsedNodes.map(n => ({
+            _id: idMap[n.tempId],
+            id: idMap[n.tempId],
+            name: n.name,
+            parentId: n.parentTempId ? idMap[n.parentTempId] : targetParentId,
+            mapId,
+            isExpanded: true
+        }));
+
+        try {
+            const inserted = await nodeApi.bulkCreateNodes(finalNodes);
+            setBackendNodes(prev => [
+                ...prev.map(n => n.id === targetParentId ? { ...n, isExpanded: true } : n),
+                ...(Array.isArray(inserted) ? inserted : []),
+            ]);
+            await nodeApi.updateNode(targetParentId, { isExpanded: true });
+        } catch (err) {
+            console.error('Bulk import failed:', err);
+            throw err;
+        }
+    }, [mapId, focusedNodeId, backendNodes, setBackendNodes]);
 
     // 6. Interaction Events
     const {
@@ -174,6 +232,7 @@ const MindMapInner = ({ mapId, initialNodes }) => {
                     setColorPalette={setColorPalette}
                     showPaletteMenu={showPaletteMenu}
                     setShowPaletteMenu={setShowPaletteMenu}
+                    onOpenImport={() => setImportOpen(true)}
                 />
 
                 <FloatingToolbar 
@@ -205,6 +264,16 @@ const MindMapInner = ({ mapId, initialNodes }) => {
             </ReactFlow>
 
             {/* TODO: Integrate Notes, Links, Files, and AI Panels here */}
+            
+            {(importOpen || externalImportOpen) && (
+                <BulkImportModal 
+                    onClose={() => {
+                        setImportOpen(false);
+                        if (onCloseExternalImport) onCloseExternalImport();
+                    }} 
+                    onImport={handleBulkImport}
+                />
+            )}
         </div>
     );
 };

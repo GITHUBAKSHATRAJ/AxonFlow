@@ -86,3 +86,17 @@ exports.bulkUpdateNodes = async (req, res, next) => {
         next(err);
     }
 };
+
+/**
+ * Bulk create nodes
+ */
+exports.bulkCreateNodes = async (req, res, next) => {
+    try {
+        if (!req.auth?.userId) return res.status(401).json({ error: 'Unauthorized' });
+        
+        const nodes = await nodeService.bulkCreateNodes(req.auth.userId, req.body);
+        res.status(201).json(nodes);
+    } catch (err) {
+        next(err);
+    }
+};

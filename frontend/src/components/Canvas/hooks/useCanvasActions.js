@@ -128,8 +128,16 @@ export const useCanvasActions = ({
         } else if (externalText) {
             const newNodes = parseIndentedText(externalText, targetNodeId);
             if (!newNodes.length) return;
+            
+            // Map temporary frontend IDs to valid server structure
+            // (Note: the backend will add userId)
+            const nodesToCreate = newNodes.map(({ id, ...rest }) => ({
+                ...rest,
+                mapId // Ensure mapId is included
+            }));
+
             try {
-                const inserted = await nodeApi.bulkUpdateNodes(newNodes);
+                const inserted = await nodeApi.bulkCreateNodes(nodesToCreate);
                 setBackendNodes(prev => [
                     ...prev.map(n => n.id === targetNodeId ? { ...n, isExpanded: true } : n),
                     ...(Array.isArray(inserted) ? inserted : []),

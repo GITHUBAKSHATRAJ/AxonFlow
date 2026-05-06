@@ -17,3 +17,6 @@ export const deleteNode = (nodeId) =>
 
 export const bulkUpdateNodes = (nodes) =>
     api.post('/nodes/bulk-update', nodes).then(r => r.data);
+
+export const bulkCreateNodes = (nodes) =>
+    api.post('/nodes/bulk-create', nodes).then(r => r.data);
