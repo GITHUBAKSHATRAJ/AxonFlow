@@ -15,6 +15,7 @@ import D3BezierEdge from './D3BezierEdge';
 import ActionToolbar from './ActionToolbar';
 import FloatingToolbar from './FloatingToolbar';
 import BulkImportModal from '../Modals/BulkImportModal';
+import ErrorBoundary from '../UI/ErrorBoundary';
 import * as nodeApi from '../../services/api/nodeApi';
 
 // Hooks
@@ -25,6 +26,28 @@ import { useDragReparent } from './hooks/useDragReparent';
 
 const edgeTypes = { d3Bezier: D3BezierEdge };
 
+/**
+ * HOW THIS WORKS: Canvas Architecture
+ * 
+ * This is the central hub for the mind mapping experience. It follows a modular, 
+ * hook-based architecture to keep the UI separate from complex business logic.
+ * 
+ * 1. State Management (useCanvasState):
+ *    - Maintains 'backendNodes' (the source of truth from MongoDB).
+ *    - Automatically runs the D3 layout engine whenever nodes or settings change.
+ *    - Syncs the calculated positions into the React Flow 'nodes' and 'edges' state.
+ * 
+ * 2. Event Handling (useCanvasEvents):
+ *    - Manages user interactions (clicks, hovers, shortcuts like Tab/Enter).
+ *    - Handles global window events like 'paste' for bulk node creation.
+ * 
+ * 3. Business Actions (useCanvasActions):
+ *    - Contains the actual logic for creating, deleting, and updating nodes.
+ *    - Manages side-panels (Notes, Links, AI).
+ * 
+ * 4. Drag-Reparent (useDragReparent):
+ *    - Special logic to handle 'dropping' one node onto another to change its parent.
+ */
 const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternalImport }) => {
     // 1. Data & Layout State
     const {
@@ -173,6 +196,7 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         openNodeInput,
         handleDeleteNode,
         handleNativePaste: (e) => {
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
             const text = e.clipboardData?.getData('text');
             if (text && focusedNodeId) handlePaste(focusedNodeId);
         },
@@ -278,10 +302,14 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
     );
 };
 
+
+
 const CanvasContainer = (props) => (
-    <ReactFlowProvider>
-        <MindMapInner {...props} />
-    </ReactFlowProvider>
+    <ErrorBoundary>
+        <ReactFlowProvider>
+            <MindMapInner {...props} />
+        </ReactFlowProvider>
+    </ErrorBoundary>
 );
 
 export default CanvasContainer;
