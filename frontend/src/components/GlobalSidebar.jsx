@@ -90,6 +90,17 @@ const GlobalSidebar = () => {
   const [workspaces, setWorkspaces] = useState([]);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [openWorkspaces, setOpenWorkspaces] = useState({});
+  const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('app-theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    localStorage.setItem('app-theme', activeTheme);
+  }, [activeTheme]);
+
+  const toggleTheme = () => {
+    const next = activeTheme === 'dark' ? 'light' : activeTheme === 'light' ? 'neon' : 'dark';
+    setActiveTheme(next);
+  };
 
   useEffect(() => {
     folderApi.fetchWorkspaces().then(data => {
@@ -111,6 +122,7 @@ const GlobalSidebar = () => {
     { name: 'My Maps', path: '/maps', icon: FolderOpen },
     { name: 'Favorites', path: '/favorites', icon: Star },
     { name: 'Workspaces', path: '/workspaces', icon: Folder, isAccordion: true },
+    { name: 'Shared with Me', path: '/shared', icon: Users },
     { name: 'Trash', path: '/trash', icon: Trash2 },
   ];
 
@@ -204,9 +216,18 @@ const GlobalSidebar = () => {
             <div className="text-[11px] text-gray-500 truncate">Pro Account</div>
           </div>
         </div>
-        <button onClick={() => logout()} className="p-2 text-gray-500 hover:text-red-400 transition-colors">
-          <LogOut size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={toggleTheme}
+            className="p-2 text-gray-500 hover:text-white transition-colors"
+            title={`Switch to ${activeTheme === 'dark' ? 'Light' : activeTheme === 'light' ? 'Neon' : 'Dark'} mode`}
+          >
+            {activeTheme === 'dark' ? <Moon size={16} /> : activeTheme === 'light' ? <Sun size={16} /> : <Sun size={16} className="text-[#00ff9f]" />}
+          </button>
+          <button onClick={() => logout()} className="p-2 text-gray-500 hover:text-red-400 transition-colors">
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   );
