@@ -88,6 +88,29 @@ function pushNode(nodes, edges, d, pos, colorMap, layoutMode) {
     }
 }
 
+/**
+ * HOW THIS WORKS: React Flow Data Construction
+ * 
+ * This function transforms a flat list of nodes from MongoDB into a 2D graph layout.
+ * It uses 'd3-hierarchy' to calculate positions based on the selected mode.
+ * 
+ * 1. Stratification: Converts the flat list (with parentId) into a nested D3 tree structure.
+ * 
+ * 2. Radial Mode:
+ *    - Uses polar coordinates (angle & radius).
+ *    - Radius is calculated as (depth * step), spreading nodes out from the center.
+ *    - Math.cos and Math.sin convert these into standard X,Y coordinates.
+ * 
+ * 3. Vertical Mode:
+ *    - Uses a standard top-down tree layout.
+ *    - nodeSize defines the minimum spacing between siblings.
+ * 
+ * 4. Horizontal Mode (Custom Column logic):
+ *    - D3 handles the Y-axis (vertical distribution) using nodeSize.
+ *    - X-axis is calculated manually using "Column Widths". 
+ *    - We measure the text of all nodes at a specific depth to determine how wide that column must be.
+ *    - This prevents nodes from overlapping even if their names are very long.
+ */
 export const buildReactFlowData = (backendNodes, layoutMode = 'horizontal', colorPalette = 'mono') => {
     if (!backendNodes || backendNodes.length === 0) return { nodes: [], edges: [] };
     const colorMap = buildColorMap(backendNodes, colorPalette);
