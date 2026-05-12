@@ -12,6 +12,24 @@ const D3BezierEdge = ({
   animated,
 }) => {
   const layoutMode = data.layoutMode || 'horizontal';
+  /**
+   * HOW THIS WORKS: SVG Bezier Path Calculation
+   * 
+   * We use Cubic Bezier curves (C) to create smooth, organic connections between nodes.
+   * A Cubic Bezier requires four points: Start (M), Control Point 1, Control Point 2, and End.
+   * 
+   * 1. Horizontal Mode:
+   *    - The curve flows from left to right.
+   *    - Control points share the source/target Y values but are placed at the horizontal midpoint (midX).
+   *    - This creates a 'S' shaped horizontal curve.
+   * 
+   * 2. Vertical Mode:
+   *    - The curve flows from top to bottom.
+   *    - Control points share source/target X values but are placed at the vertical midpoint (midY).
+   * 
+   * 3. Radial Mode:
+   *    - Similar to horizontal, but optimized for circular distribution.
+   */
   let path;
 
   if (layoutMode === 'vertical') {
