@@ -203,6 +203,7 @@ const D3StyleNode = ({ data, selected }) => {
           className="nodrag nopan"
           onPointerDownCapture={e => e.stopPropagation()}
           onMouseDown={e => e.stopPropagation()}
+          onPaste={e => e.stopPropagation()}
         />
       ) : (
         <span style={{
