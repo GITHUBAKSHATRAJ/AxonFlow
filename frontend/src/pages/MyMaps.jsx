@@ -5,15 +5,10 @@ import {
     Star, LayoutGrid, List, Copy, Download, RotateCcw 
 } from 'lucide-react';
 import GlobalSidebar from '../components/GlobalSidebar';
+import MapCard from '../components/UI/MapCard';
 import * as mapApi from '../services/api/mapApi';
 
-const getGradientClass = (id) => {
-  if (!id) return 'bg-grad-1';
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  const index = Math.abs(hash) % 6 + 1;
-  return `bg-grad-${index}`;
-};
+// Utility getGradientClass moved to MapCard.jsx
 
 const MyMaps = ({ filter = 'all' }) => {
     const navigate = useNavigate();
@@ -34,6 +29,7 @@ const MyMaps = ({ filter = 'all' }) => {
             const params = {};
             if (filter === 'trash') params.isTrashed = true;
             else if (filter === 'favorites') params.isFavorite = true;
+            else if (filter === 'shared') params.isShared = true;
             else params.isTrashed = false;
 
             const data = await mapApi.fetchAllMaps(params);
@@ -81,6 +77,7 @@ const MyMaps = ({ filter = 'all' }) => {
     const titleMap = {
         all: 'My Maps',
         favorites: 'Favorites',
+        shared: 'Shared with Me',
         trash: 'Trash'
     };
 
@@ -130,63 +127,15 @@ const MyMaps = ({ filter = 'all' }) => {
                 ) : (
                     <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col gap-3"}>
                         {filteredMaps.map(map => (
-                            <div 
+                            <MapCard 
                                 key={map.id} 
+                                map={map}
+                                viewMode={viewMode}
+                                isTrash={filter === 'trash'}
                                 onClick={() => filter !== 'trash' && navigate(`/map/${map.id}`)}
-                                className={`
-                                    group bg-[#1a1d27] border border-[#2a2f3e] hover:border-[#6366f1] rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 shadow-lg
-                                    ${viewMode === 'list' ? 'flex items-center justify-between p-4' : ''}
-                                `}
-                            >
-                                {viewMode === 'grid' ? (
-                                    <>
-                                        <div className={`h-28 w-full relative ${getGradientClass(map.id)}`}>
-                                            {filter !== 'trash' && (
-                                                <button 
-                                                    onClick={(e) => toggleFavorite(e, map)}
-                                                    className="absolute top-3 right-3 p-2 bg-black/20 backdrop-blur-md rounded-lg text-white hover:bg-black/40 transition-colors"
-                                                >
-                                                    <Star size={16} fill={map.isFavorite ? '#ffd700' : 'none'} className={map.isFavorite ? 'text-[#ffd700]' : 'text-white'} />
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="p-5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4 truncate">
-                                                <div className="p-2 bg-[#6366f1]/10 text-[#6366f1] rounded-lg shrink-0">
-                                                    <MapIcon size={18} />
-                                                </div>
-                                                <h4 className="font-bold truncate group-hover:text-[#6366f1] transition-colors">{map.name || 'Untitled'}</h4>
-                                            </div>
-                                            {filter === 'trash' ? (
-                                                <button onClick={(e) => handleRestore(e, map)} className="text-gray-500 hover:text-green-500 transition-colors" title="Restore"><RotateCcw size={16} /></button>
-                                            ) : (
-                                                <button onClick={(e) => handleTrash(e, map)} className="text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                                            )}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="flex items-center gap-4 truncate flex-1">
-                                            <div className={`w-8 h-8 rounded-lg ${getGradientClass(map.id)} shrink-0`} />
-                                            <div className="p-1.5 bg-[#6366f1]/10 text-[#6366f1] rounded-md shrink-0">
-                                                <MapIcon size={14} />
-                                            </div>
-                                            <h4 className="font-bold truncate group-hover:text-[#6366f1] transition-colors">{map.name || 'Untitled'}</h4>
-                                        </div>
-                                        <div className="flex items-center gap-6 text-gray-500">
-                                            <span className="text-xs hidden md:block">Edited 2h ago</span>
-                                            {filter === 'trash' ? (
-                                                <button onClick={(e) => handleRestore(e, map)} className="hover:text-green-500 transition-colors"><RotateCcw size={18} /></button>
-                                            ) : (
-                                                <>
-                                                    <button onClick={(e) => toggleFavorite(e, map)} className={`hover:text-[#ffd700] transition-colors ${map.isFavorite ? 'text-[#ffd700]' : ''}`}><Star size={18} fill={map.isFavorite ? '#ffd700' : 'none'} /></button>
-                                                    <button onClick={(e) => handleTrash(e, map)} className="hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                                onTogglePin={toggleFavorite}
+                                onRestore={handleRestore}
+                            />
                         ))}
                     </div>
                 )}
