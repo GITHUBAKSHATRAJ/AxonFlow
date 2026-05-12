@@ -66,6 +66,15 @@ function App() {
       />
 
       <Route
+        path="/shared"
+        element={
+          <ProtectedRoute>
+            <MyMaps filter="shared" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/workspaces"
         element={
           <ProtectedRoute>
