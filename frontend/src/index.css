@@ -4,7 +4,12 @@
 /* ═══════════════════════════════════════════════════════════
    DESIGN TOKENS — AxonFlow Dark Theme
    ═══════════════════════════════════════════════════════════ */
-:root {
+html {
+  scroll-behavior: smooth;
+}
+
+:root,
+[data-theme='dark'] {
   --text:          #9ca3af;
   --text-h:        #f9fafb;
   --text-muted:    #6b7280;
@@ -28,6 +33,43 @@
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
+
+[data-theme='light'] {
+  --text:          #4b5563;
+  --text-h:        #111827;
+  --text-muted:    #9ca3af;
+  --bg:            #f9fafb;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #f3f4f6;
+  --border:        #e5e7eb;
+  --border-focus:  #4f46e5;
+  --accent:        #4f46e5;
+  --accent-hover:  #4338ca;
+  --accent-bg:     rgba(79, 70, 229, 0.1);
+  --shadow-sm:     0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:     0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg:     0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  color-scheme: light;
+}
+
+[data-theme='neon'] {
+  --text:          #94f7d3;
+  --text-h:        #00ff9f;
+  --text-muted:    #008f5d;
+  --bg:            #061a14;
+  --bg-card:       #0a2e24;
+  --bg-card-hover: #0e3d30;
+  --border:        #165c48;
+  --border-focus:  #00ff9f;
+  --accent:        #00ff9f;
+  --accent-hover:  #00cc7f;
+  --accent-bg:     rgba(0, 255, 159, 0.1);
+  --shadow-sm:     0 1px 2px 0 rgba(0, 255, 159, 0.1);
+  --shadow-md:     0 4px 6px -1px rgba(0, 255, 159, 0.3);
+  --shadow-lg:     0 10px 15px -3px rgba(0, 255, 159, 0.4);
+  color-scheme: dark;
+}
+
 
 body {
   margin: 0;
