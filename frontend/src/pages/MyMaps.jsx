@@ -11,8 +11,8 @@ import * as mapApi from '../services/api/mapApi';
 // Utility getGradientClass moved to MapCard.jsx
 
 const MyMaps = ({ filter = 'all' }) => {
-    const navigate = useNavigate();
-    const [maps, setMaps] = useState([]);
+    const navigate = useNavigate(); // const will not change 
+    const [maps, setMaps] = useState([]); // useState retrun variabl map ,and function setMap to work on variable map , default value will be empty array 
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState('grid');
