@@ -1,0 +1,24 @@
+graph LR
+    %% Styling
+    classDef default fill:#fff,stroke:#333,stroke-width:2px,color:#000,font-family:Arial;
+    classDef frontend fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px;
+    classDef backend fill:#E3F2FD,stroke:#1565C0,stroke-width:2px;
+    classDef database fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px;
+    classDef auth fill:#FFF3E0,stroke:#E65100,stroke-width:2px;
+    classDef user fill:#fff,stroke:#fff,stroke-width:0px;
+
+    User[/"User<br>(Browser)"/]:::user
+
+    Frontend["Frontend<br>(Vercel)<br><br>Static Host<br>(React App)<br>CDN"]:::frontend
+    
+    Backend["Backend API<br>(Express.js)<br><br>Node.js v18<br>REST API<br>Controllers"]:::backend
+    
+    Mongo["MongoDB<br>Atlas<br><br>MongoDB<br>Database<br>ODM (Mongoose)"]:::database
+    
+    Clerk["Clerk<br><br>Auth / JWT"]:::auth
+
+    User -->|HTTPS<br>Request| Frontend
+    Frontend -->|HTTPS / REST<br>JSON| Backend
+    Backend -->|MongoDB<br>Protocol| Mongo
+    Backend -->|Verify<br>Token| Clerk
+    Frontend -->|JWT| Clerk

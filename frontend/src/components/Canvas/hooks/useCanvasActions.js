@@ -71,11 +71,22 @@ export const useCanvasActions = ({
         }
     }, [setBackendNodes, backendNodesRef]);
 
-    // ── Clipboard Actions ──
     const handleCopy = useCallback((rfNode) => {
         setMenuConfig(null);
         const all = backendNodesRef.current;
         const branch = [];
+        
+        const buildIndentedText = (nodeId, depth) => {
+            const node = all.find(x => x.id === nodeId);
+            if (!node) return '';
+            let text = `${'\t'.repeat(depth)}${node.name}\n`;
+            const children = all.filter(x => x.parentId === nodeId);
+            children.forEach(child => {
+                text += buildIndentedText(child.id, depth + 1);
+            });
+            return text;
+        };
+
         const collect = (nid) => {
             const n = all.find(x => x.id === nid);
             if (n) {
@@ -83,8 +94,17 @@ export const useCanvasActions = ({
                 all.filter(x => x.parentId === nid).forEach(c => collect(c.id));
             }
         };
+
         collect(rfNode.id);
-        clipboard = { rootId: rfNode.id, nodes: branch };
+        const textToCopy = buildIndentedText(rfNode.id, 0).trimEnd();
+        
+        clipboard = { rootId: rfNode.id, nodes: branch, text: textToCopy };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).catch(err => {
+                console.error('Failed to write to clipboard:', err);
+            });
+        }
     }, [backendNodesRef, setMenuConfig]);
 
     const handlePaste = useCallback(async (targetNodeId) => {
@@ -101,14 +121,16 @@ export const useCanvasActions = ({
             return;
         }
 
-        if (clipboard) {
+        // If internal clipboard matches the system clipboard (or if system clipboard is blocked), use internal copy.
+        // This ensures that if the user copies text outside the app, the external text overrides the internal clipboard.
+        if (clipboard && (!externalText || externalText.trimEnd() === clipboard.text)) {
             // Clone branch with new IDs
             const idMap = {};
             const generateObjectId = () => [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
             const cloned = clipboard.nodes.map(n => {
                 const newId = generateObjectId();
                 idMap[n.id] = newId;
-                return { ...n, id: newId };
+                return { ...n, id: newId, _id: newId };
             });
             const patched = cloned.map(n => ({
                 ...n,
@@ -116,7 +138,7 @@ export const useCanvasActions = ({
             }));
 
             try {
-                await nodeApi.bulkUpdateNodes(patched); // Using bulk-update for insertion
+                await nodeApi.bulkCreateNodes(patched); // Using bulk-create for insertion
                 setBackendNodes(prev => [
                     ...prev.map(n => n.id === targetNodeId ? { ...n, isExpanded: true } : n),
                     ...patched,
@@ -131,8 +153,9 @@ export const useCanvasActions = ({
             
             // Map temporary frontend IDs to valid server structure
             // (Note: the backend will add userId)
-            const nodesToCreate = newNodes.map(({ id, ...rest }) => ({
-                ...rest,
+            const nodesToCreate = newNodes.map((node) => ({
+                ...node,
+                _id: node.id,
                 mapId // Ensure mapId is included
             }));
 

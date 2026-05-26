@@ -1,0 +1,50 @@
+graph TD
+    %% Styling
+    classDef default fill:#fff,stroke:#333,stroke-width:2px,color:#000,font-family:Arial;
+    classDef frontend fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px;
+    classDef backend fill:#E3F2FD,stroke:#1565C0,stroke-width:2px;
+    classDef database fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px;
+    classDef auth fill:#FFF3E0,stroke:#E65100,stroke-width:2px;
+    
+    subgraph S1 [USER BROWSER]
+        User[React App<br>React 18<br>React Flow]:::frontend
+    end
+    
+    subgraph S2 [FRONTEND VERCEL]
+        Vercel[Static Files<br>HTML JS CSS]:::frontend
+    end
+    
+    subgraph S3 [BACKEND EXPRESS API]
+        Routes[API Layer Routes<br>REST Endpoints]:::backend
+        Controllers[Controllers<br>Business Logic]:::backend
+        Services[Services / Utilities]:::backend
+    end
+    
+    subgraph S4 [DATABASE MONGODB ATLAS]
+        Cluster[Database Cluster]:::database
+        Coll[Collections]:::database
+        ODM[Mongoose ODM]:::database
+    end
+    
+    subgraph S5 [CLERK AUTH]
+        Clerk[Authentication<br>JWT Issued]:::auth
+    end
+
+    User -->|1. HTTPS Request| Vercel
+    Vercel -->|2. HTTPS / REST Request| Routes
+    Routes --> Controllers
+    Controllers --> Services
+    
+    Services -->|3. MongoDB Query| ODM
+    ODM --> Coll
+    Coll --> Cluster
+    Cluster -->|4. MongoDB Response| ODM
+    ODM --> Services
+    
+    Routes -->|5. Verify Token| Clerk
+    Clerk -->|6. Token Valid / Invalid| Routes
+    
+    Routes -->|9. JSON Response| Vercel
+    Vercel -->|10. JSON Response| User
+    
+    User -->|8. Authorized Access| Clerk

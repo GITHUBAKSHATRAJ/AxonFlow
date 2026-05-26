@@ -107,16 +107,16 @@ const WorkspaceView = () => {
     };
 
     return (
-        <div className="flex w-full h-screen bg-[#0f111a] overflow-hidden text-white">
+        <div className="flex w-full h-screen bg-bg overflow-hidden text-text-h">
             <GlobalSidebar />
 
             <main className="flex-1 flex flex-col overflow-hidden">
                 {/* Custom Navigation Bar */}
-                <header className="h-[72px] shrink-0 border-b border-[#2a2f3e] bg-[#1a1d27]/50 backdrop-blur-xl flex items-center justify-between px-12">
+                <header className="h-[72px] shrink-0 border-b border-border bg-bg-card/50 backdrop-blur-xl flex items-center justify-between px-12">
                     <div className="flex items-center gap-4 text-sm">
                         <button 
                             onClick={() => decodedWorkspace ? (currentFolderId ? navigateToBreadcrumb(-1) : navigate('/workspaces')) : navigate('/')}
-                            className="p-2 hover:bg-[#222634] rounded-lg text-gray-400 hover:text-white transition-all"
+                            className="p-2 hover:bg-bg-card-hover rounded-lg text-text-muted hover:text-text-h transition-all"
                         >
                             <ArrowLeft size={18} />
                         </button>
@@ -126,7 +126,7 @@ const WorkspaceView = () => {
                         <div className="flex items-center gap-2">
                             <span 
                                 onClick={() => navigate('/workspaces')}
-                                className={`cursor-pointer hover:text-[#6366f1] transition-colors ${!decodedWorkspace ? 'text-white font-bold' : 'text-gray-500'}`}
+                                className={`cursor-pointer hover:text-accent transition-colors ${!decodedWorkspace ? 'text-text-h font-bold' : 'text-text-muted'}`}
                             >
                                 Workspaces
                             </span>
@@ -135,7 +135,7 @@ const WorkspaceView = () => {
                                     <ChevronRight size={14} className="text-gray-700" />
                                     <span 
                                         onClick={() => navigateToBreadcrumb(-1)}
-                                        className={`cursor-pointer hover:text-[#6366f1] transition-colors ${!currentFolderId ? 'text-white font-bold' : 'text-gray-500'}`}
+                                        className={`cursor-pointer hover:text-accent transition-colors ${!currentFolderId ? 'text-text-h font-bold' : 'text-text-muted'}`}
                                     >
                                         {decodedWorkspace}
                                     </span>
@@ -146,7 +146,7 @@ const WorkspaceView = () => {
                                     <ChevronRight size={14} className="text-gray-700" />
                                     <span 
                                         onClick={() => navigateToBreadcrumb(idx)}
-                                        className={`cursor-pointer hover:text-[#6366f1] transition-colors ${idx === breadcrumbs.length - 1 ? 'text-white font-bold' : 'text-gray-500'}`}
+                                        className={`cursor-pointer hover:text-accent transition-colors ${idx === breadcrumbs.length - 1 ? 'text-text-h font-bold' : 'text-text-muted'}`}
                                     >
                                         {bc.name}
                                     </span>
@@ -156,13 +156,13 @@ const WorkspaceView = () => {
                     </div>
 
                     <div className="flex items-center gap-6">
-                         <div className="flex bg-[#1a1d27] border border-[#2a2f3e] rounded-lg p-1">
-                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-[#222634] text-[#6366f1]' : 'text-gray-500'}`}><LayoutGrid size={16} /></button>
-                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-[#222634] text-[#6366f1]' : 'text-gray-500'}`}><List size={16} /></button>
+                         <div className="flex bg-bg-card border border-border rounded-lg p-1">
+                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-bg-card-hover text-accent' : 'text-text-muted'}`}><LayoutGrid size={16} /></button>
+                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-bg-card-hover text-accent' : 'text-text-muted'}`}><List size={16} /></button>
                         </div>
                         <button 
                             onClick={decodedWorkspace ? handleCreateMap : handleCreateWorkspace}
-                            className="bg-[#6366f1] hover:bg-[#4f46e5] text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-[#6366f1]/20 active:translate-y-px"
+                            className="bg-accent hover:bg-accent-hover text-text-h px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-accent/20 active:translate-y-px"
                         >
                             <Plus size={16} /> New {decodedWorkspace ? 'Map' : 'Workspace'}
                         </button>
@@ -172,7 +172,7 @@ const WorkspaceView = () => {
                 {/* Content Area */}
                 <div className="flex-1 overflow-y-auto p-12">
                     {loading ? (
-                        <div className="py-20 text-center text-gray-500 animate-pulse text-lg">Syncing workspace...</div>
+                        <div className="py-20 text-center text-text-muted animate-pulse text-lg">Syncing workspace...</div>
                     ) : (
                         <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8" : "flex flex-col gap-3"}>
                             
@@ -184,9 +184,9 @@ const WorkspaceView = () => {
                                     className="group flex flex-col items-center gap-3 cursor-pointer"
                                 >
                                     <div className="w-full aspect-square bg-gradient-to-br from-[#1d4ed8] to-[#3b82f6] rounded-[24px] rounded-tl-[12px] flex items-center justify-center shadow-xl group-hover:-translate-y-2 group-hover:shadow-[#1d4ed8]/40 transition-all border-l-[10px] border-black/20">
-                                        <Folder size={48} className="text-white group-hover:scale-110 transition-transform" />
+                                        <Folder size={48} className="text-text-h group-hover:scale-110 transition-transform" />
                                     </div>
-                                    <span className="font-bold text-gray-300 group-hover:text-white transition-colors">{w}</span>
+                                    <span className="font-bold text-text-muted group-hover:text-text-h transition-colors">{w}</span>
                                 </div>
                             ))}
 
@@ -199,10 +199,10 @@ const WorkspaceView = () => {
                                             onClick={() => navigateToFolder(f)}
                                             className="group flex flex-col items-center gap-3 cursor-pointer"
                                         >
-                                            <div className="w-full aspect-square bg-[#1a1d27] border border-[#2a2f3e] group-hover:border-[#6366f1] rounded-2xl flex items-center justify-center transition-all group-hover:-translate-y-1">
-                                                <Folder size={40} className="text-[#6366f1] group-hover:scale-110 transition-transform" />
+                                            <div className="w-full aspect-square bg-bg-card border border-border group-hover:border-border-focus rounded-2xl flex items-center justify-center transition-all group-hover:-translate-y-1">
+                                                <Folder size={40} className="text-accent group-hover:scale-110 transition-transform" />
                                             </div>
-                                            <span className="font-semibold text-sm text-gray-400 group-hover:text-white truncate w-full text-center">{f.name}</span>
+                                            <span className="font-semibold text-sm text-text-muted group-hover:text-text-h truncate w-full text-center">{f.name}</span>
                                         </div>
                                     ))}
 
@@ -213,15 +213,15 @@ const WorkspaceView = () => {
                                             className="group flex flex-col items-center gap-3 cursor-pointer"
                                         >
                                             <div className={`w-full aspect-square rounded-2xl ${getGradientClass(map.id)} flex items-center justify-center transition-all group-hover:-translate-y-1 shadow-lg`}>
-                                                <MapIcon size={40} className="text-white/80 group-hover:scale-110 transition-transform" />
+                                                <MapIcon size={40} className="text-text-h/80 group-hover:scale-110 transition-transform" />
                                             </div>
-                                            <span className="font-semibold text-sm text-gray-400 group-hover:text-white truncate w-full text-center">{map.name || 'Untitled'}</span>
+                                            <span className="font-semibold text-sm text-text-muted group-hover:text-text-h truncate w-full text-center">{map.name || 'Untitled'}</span>
                                         </div>
                                     ))}
                                     
                                     {folders.length === 0 && maps.length === 0 && (
-                                        <div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-[#2a2f3e] rounded-[32px] text-gray-500 gap-4">
-                                            <div onClick={handleCreateFolder} className="w-16 h-16 bg-[#1a1d27] rounded-full flex items-center justify-center text-gray-700 cursor-pointer hover:bg-[#222634] hover:text-[#6366f1] transition-all">
+                                        <div className="col-span-full py-32 flex flex-col items-center justify-center border border-dashed border-border rounded-[32px] text-text-muted gap-4">
+                                            <div onClick={handleCreateFolder} className="w-16 h-16 bg-bg-card rounded-full flex items-center justify-center text-gray-700 cursor-pointer hover:bg-bg-card-hover hover:text-accent transition-all">
                                                 <FolderPlus size={32} />
                                             </div>
                                             <p className="text-lg">Empty folder. Create your first map or sub-folder.</p>

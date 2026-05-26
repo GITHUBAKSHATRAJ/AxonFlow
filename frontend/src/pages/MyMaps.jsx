@@ -84,42 +84,42 @@ const MyMaps = ({ filter = 'all' }) => {
     const filteredMaps = maps.filter(m => (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
-        <div className="flex w-full h-screen bg-[#0f111a] overflow-hidden text-white">
+        <div className="flex w-full h-screen bg-bg overflow-hidden text-text-h">
             <GlobalSidebar />
 
             <main className="flex-1 overflow-y-auto p-12 lg:p-16">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-12">
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight text-white mb-2">{titleMap[filter]}</h1>
-                        <p className="text-gray-400 text-lg">
+                        <h1 className="text-4xl font-bold tracking-tight text-text-h mb-2">{titleMap[filter]}</h1>
+                        <p className="text-text-muted text-lg">
                             {filter === 'trash' ? 'Items here will be permanently deleted after 30 days.' : 'Manage and organize your standalone mind maps.'}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="relative w-64">
-                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
                             <input 
                                 type="text" 
                                 placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-[#1a1d27] border border-[#2a2f3e] rounded-xl py-2 pl-10 pr-4 text-sm outline-none focus:border-[#6366f1] transition-all"
+                                className="w-full bg-bg-card border border-border rounded-xl py-2 pl-10 pr-4 text-sm outline-none focus:border-border-focus transition-all"
                             />
                         </div>
-                        <div className="flex bg-[#1a1d27] border border-[#2a2f3e] rounded-lg p-1">
-                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-[#222634] text-[#6366f1]' : 'text-gray-500'}`}><LayoutGrid size={16} /></button>
-                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-[#222634] text-[#6366f1]' : 'text-gray-500'}`}><List size={16} /></button>
+                        <div className="flex bg-bg-card border border-border rounded-lg p-1">
+                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-bg-card-hover text-accent' : 'text-text-muted'}`}><LayoutGrid size={16} /></button>
+                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-bg-card-hover text-accent' : 'text-text-muted'}`}><List size={16} /></button>
                         </div>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center text-gray-500 animate-pulse text-lg">Loading items...</div>
+                    <div className="py-20 text-center text-text-muted animate-pulse text-lg">Loading items...</div>
                 ) : filteredMaps.length === 0 ? (
-                    <div className="py-32 flex flex-col items-center justify-center border border-dashed border-[#2a2f3e] rounded-[32px] text-gray-500 gap-4">
-                        <div className="w-16 h-16 bg-[#1a1d27] rounded-full flex items-center justify-center text-gray-700">
+                    <div className="py-32 flex flex-col items-center justify-center border border-dashed border-border rounded-[32px] text-text-muted gap-4">
+                        <div className="w-16 h-16 bg-bg-card rounded-full flex items-center justify-center text-gray-700">
                             <MapIcon size={32} />
                         </div>
                         <p className="text-lg">No maps found in this section.</p>

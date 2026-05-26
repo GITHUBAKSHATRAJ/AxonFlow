@@ -203,7 +203,7 @@ export const parseIndentedText = (text, targetParentId) => {
     const lines = text.split('\n').filter(l => l.trim().length > 0);
     if (!lines.length) return [];
     const newNodes = [];
-    const generateId = () => Math.random().toString(36).substr(2, 9);
+    const generateId = () => [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
     const stack = [{ depth: -1, id: targetParentId }];
     lines.forEach(line => {
         const match = line.match(/^([ \t]*)/);

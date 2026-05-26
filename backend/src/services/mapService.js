@@ -44,7 +44,8 @@ class MapService {
             name: data.name || 'New Map',
             userId,
             workspace: data.workspace || null,
-            folderId: data.folderId || null
+            folderId: data.folderId || null,
+            template: data.template || null
         });
 
         const savedMap = await newMap.save();

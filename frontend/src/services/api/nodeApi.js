@@ -1,3 +1,5 @@
+//NOTE : Reviewed on 24th may, 2026
+
 import { api } from './client';
 
 export const fetchMapNodes = (mapId) =>

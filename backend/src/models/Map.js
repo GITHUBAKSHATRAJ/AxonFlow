@@ -13,6 +13,7 @@ const MapSchema = new mongoose.Schema({
     ref: 'Folder',
     default: null
   },
+  template: { type: String, default: null },
   isFavorite: { type: Boolean, default: false },
   isTrashed: { type: Boolean, default: false },
   tags: { type: [String], default: [] },

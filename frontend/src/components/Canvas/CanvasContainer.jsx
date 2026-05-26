@@ -50,19 +50,26 @@ const edgeTypes = { d3Bezier: D3BezierEdge };
  */
 const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternalImport }) => {
     // 1. Data & Layout State
+
+    // step 1 : CanvasContainer receives the raw data (initialNodes).
+    // step 2 : It passes this data to the useCanvasState hook.
+    // step 3 : useCanvasState calls D3LayoutEngine.
+    // step 4 : D3LayoutEngine calculates the (x, y) positions. for every single node so that they fan out beautifully in a mind map shape.
+    // step 5 : useCanvasState returns the fully calculated nodes and edges
+    // step 6 : Finally, down on line 232, those calculated nodes and edges are passed directly into <ReactFlow> to be drawn on your screen:
     const {
-        backendNodes,
+        backendNodes, // MongoDb nodes
         setBackendNodes,
-        nodes,
+        nodes,  // React Flow nodes
         onNodesChange,
-        edges,
+        edges, // <--- These are the connecting lines!
         setEdges,
         onEdgesChange,
         layoutMode,
         setLayoutMode,
         colorPalette,
         setColorPalette
-    } = useCanvasState(mapId, initialNodes);
+    } = useCanvasState(mapId, initialNodes); // custom hook
 
     // Stable ref for backend nodes (used by recursive actions)
     const backendNodesRef = useRef(backendNodes);
@@ -226,6 +233,9 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
             onHoverEnd
         }
     })), [nodes, focusedNodeId, hoveredNodeId, dropTargetId, onHover, onHoverEnd]);
+
+
+
 
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative', background: '#121212' }}>

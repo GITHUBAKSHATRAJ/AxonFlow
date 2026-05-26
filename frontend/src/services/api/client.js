@@ -1,3 +1,5 @@
+//NOTE : Reviewed on 24th may, 2026
+
 import axios from 'axios';
 
 // Use Vite environment variable or fallback to localhost
@@ -16,7 +18,7 @@ const DEMO_USER_ID = 'user_demo_123';
 api.interceptors.request.use((config) => {
     // Attach hardcoded user ID to headers
     config.headers['x-user-id'] = DEMO_USER_ID;
-    
+
     // In a real app, you'd check for a token in localStorage here
     // For now, we just identify as the demo user
     return config;

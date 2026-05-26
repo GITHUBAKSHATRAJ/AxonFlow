@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-border: var(--border);
+  --color-border-focus: var(--border-focus);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-text-h: var(--text-h);
+  --color-text-muted: var(--text-muted);
+}
+
 /* ═══════════════════════════════════════════════════════════
    DESIGN TOKENS — AxonFlow Dark Theme
    ═══════════════════════════════════════════════════════════ */

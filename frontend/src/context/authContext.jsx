@@ -1,3 +1,5 @@
+//NOTE : Reviewed on 24th may, 2026
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
@@ -15,7 +17,7 @@ export const AuthProvider = ({ children }) => {
             setUser(JSON.parse(storedUser));
         }
         setLoading(false);
-    }, []);
+    }, []); // Run Once (because of [] dependency array) 
 
     const login = () => {
         const demoUser = {
@@ -41,6 +43,10 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+
+/* 
+Custom hook that returns the current auth context (user, login, logout)
+ */
 
 export const useAuth = () => {
     const context = useContext(AuthContext);

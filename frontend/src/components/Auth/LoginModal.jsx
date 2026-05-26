@@ -1,3 +1,6 @@
+
+//NOTE : Reviewed on 24th may, 2026
+
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { X, LogIn, Loader2 } from 'lucide-react';
@@ -34,14 +37,14 @@ const LoginModal = ({ onClose }) => {
                     <h2 className="text-2xl font-bold">Welcome back</h2>
                     <button 
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-white/5 text-white/40 hover:text-white transition-all"
+                        className="p-2 rounded-full hover:bg-white/5 text-text-h/40 hover:text-text-h transition-all"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 <div className="space-y-6 relative z-10">
-                    <p className="text-white/50 text-sm">
+                    <p className="text-text-h/50 text-sm">
                         Experience the power of AxonFlow. Sign in to sync your mind maps across devices.
                     </p>
 
@@ -65,7 +68,7 @@ const LoginModal = ({ onClose }) => {
                             <div className="w-full border-t border-white/5"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-[#121214] px-4 text-white/30">Or continue with</span>
+                            <span className="bg-[#121214] px-4 text-text-h/30">Or continue with</span>
                         </div>
                     </div>
 
@@ -78,7 +81,7 @@ const LoginModal = ({ onClose }) => {
                         </button>
                     </div>
 
-                    <p className="text-center text-[10px] text-white/20 mt-8">
+                    <p className="text-center text-[10px] text-text-h/20 mt-8">
                         By signing in, you agree to our Terms of Service <br /> and Privacy Policy.
                     </p>
                 </div>

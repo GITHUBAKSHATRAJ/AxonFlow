@@ -58,19 +58,19 @@ const BulkImportModal = ({ onClose, onImport }) => {
 
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#1a1d27] border border-[#2a2f3e] rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="p-8 border-b border-[#2a2f3e] flex justify-between items-center bg-[#1a1d27]">
+            <div className="bg-bg-card border border-border rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="p-8 border-b border-border flex justify-between items-center bg-bg-card">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center">
                             <Upload size={20} />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold">Bulk Import Nodes</h2>
-                            <p className="text-xs text-gray-500">Paste indented text to create branches</p>
+                            <p className="text-xs text-text-muted">Paste indented text to create branches</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                        <X size={20} className="text-gray-500" />
+                        <X size={20} className="text-text-muted" />
                     </button>
                 </div>
 
@@ -93,22 +93,22 @@ const BulkImportModal = ({ onClose, onImport }) => {
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         placeholder="Paste your text here..."
-                        className="w-full h-80 bg-[#0f111a] border border-[#2a2f3e] rounded-2xl p-6 text-white outline-none focus:border-[#6366f1] transition-all resize-none font-mono text-sm"
+                        className="w-full h-80 bg-bg border border-border rounded-2xl p-6 text-text-h outline-none focus:border-border-focus transition-all resize-none font-mono text-sm"
                         autoFocus
                     />
                 </div>
 
-                <div className="p-8 bg-[#141721] flex justify-end gap-4">
+                <div className="p-8 bg-bg-card-hover flex justify-end gap-4">
                     <button 
                         onClick={onClose}
-                        className="px-6 py-3 rounded-xl text-gray-400 font-semibold hover:text-white transition-colors"
+                        className="px-6 py-3 rounded-xl text-text-muted font-semibold hover:text-text-h transition-colors"
                     >
                         Cancel
                     </button>
                     <button 
                         onClick={handleImport}
                         disabled={isProcessing || !text.trim()}
-                        className="px-8 py-3 bg-[#6366f1] text-white font-bold rounded-xl hover:bg-[#4f46e5] disabled:opacity-50 disabled:pointer-events-none transition-all shadow-lg shadow-[#6366f1]/20 flex items-center gap-2"
+                        className="px-8 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent-hover disabled:opacity-50 disabled:pointer-events-none transition-all shadow-lg shadow-accent/20 flex items-center gap-2"
                     >
                         {isProcessing ? 'Creating Nodes...' : 'Import Branches'}
                     </button>
