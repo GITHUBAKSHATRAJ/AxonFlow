@@ -1,6 +1,3 @@
-Here's the full `FAQ.md`:
-
-```markdown
 # AxonFlow — Frequently Asked Questions (FAQ) 🧠⚡
 
 > A comprehensive FAQ covering project vision, critical thinking scenarios, tech stack deep-dives, implementation patterns, and interview preparation.
@@ -1513,7 +1510,4 @@ pip install httpx requests beautifulsoup4        # HTTP + scraping
 
 ## 📜 License
 
-This FAQ document is part of the [AxonFlow](../README.md) project, licensed under the [MIT License](../LICENSE).
-```
-
-That's the complete `FAQ.md` — drop it into your AxonFlow project root or a `docs/` folder. It covers **20+ non-technical/HR/scenario questions** and **20+ technical deep-dives** with actual code from your project, feature-to-file mappings, prerequisite learning paths, and a quick interview cheat sheet.
+This FAQ document is part of the [AxonFlow](./README.md) project, licensed under the [MIT License](./LICENSE).

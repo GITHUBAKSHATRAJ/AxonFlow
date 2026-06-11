@@ -23,6 +23,7 @@
 - [Getting Started](#-getting-started)
 - [Environment Variables](#-environment-variables)
 - [System Design](#-system-design)
+- [Use Case Diagram](#-use-case-diagram)
 - [UML Class Diagram](#-uml-class-diagram)
 - [Frontend Component Architecture](#-frontend-component-architecture)
 - [Roadmap](#-roadmap)
@@ -87,49 +88,71 @@ The project uses a **monorepo architecture** with three independently deployable
 
 ## 🏗 Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          CLIENT (Browser)                          │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────────┐  │
-│  │ Landing  │  │Dashboard │  │  MyMaps   │  │    Editor Page    │  │
-│  │  Page    │  │  Page    │  │   Page    │  │  ┌─────────────┐  │  │
-│  └──────────┘  └──────────┘  └───────────┘  │  │CanvasContainer│ │  │
-│                                              │  │ (React Flow) │  │  │
-│  ┌──────────────────┐  ┌──────────────────┐  │  └─────────────┘  │  │
-│  │  GlobalSidebar   │  │  WorkspaceView  │  └───────────────────┘  │
-│  └──────────────────┘  └──────────────────┘                        │
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │              Services Layer (Axios + Fetch API)             │   │
-│  │  mapApi.js │ nodeApi.js │ folderApi.js │ aiApi.js (SSE)    │   │
-│  └────────────┬────────────────────────────┬───────────────────┘   │
-└───────────────┼────────────────────────────┼───────────────────────┘
-                │ HTTP (REST)                │ HTTP (SSE Stream)
-                ▼                            ▼
-┌───────────────────────────┐  ┌───────────────────────────┐
-│    BACKEND (Node.js)      │  │   AI ENGINE (Python)      │
-│    Express 5 · Port 5000  │  │   FastAPI · Port 8001     │
-│                           │  │                           │
-│  Routes → Controllers     │  │  Endpoints:               │
-│    → Services → Models    │  │  /api/ai/stream-nodes     │
-│                           │  │  /api/ai/stream-automap   │
-│  ┌─────────────────────┐  │  │  /api/ai/generate-nodes   │
-│  │  Mongoose ODM       │  │  │  /api/ai/models           │
-│  └─────────┬───────────┘  │  │                           │
-│            │              │  │  LangChain + ChatOllama   │
-└────────────┼──────────────┘  └─────────────┬─────────────┘
-             │                               │
-             ▼                               ▼
-┌───────────────────────────┐  ┌───────────────────────────┐
-│       MongoDB             │  │     Ollama (Local LLM)    │
-│   Database: axonflow_db   │  │     Port: 11434           │
-│                           │  │                           │
-│  Collections:             │  │  Models:                  │
-│  • maps                   │  │  • llama3 / llama3.1      │
-│  • nodes                  │  │  • mistral                │
-│  • folders                │  │  • gemma / codellama      │
-└───────────────────────────┘  └───────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph CLIENT["CLIENT · Browser"]
+        direction TB
+        subgraph Pages["Pages"]
+            LP["Landing Page"]
+            DP["Dashboard"]
+            MM["MyMaps"]
+            ED["Editor Page"]
+        end
+        subgraph Canvas["Canvas Engine"]
+            CC["CanvasContainer\n(React Flow)"]
+            GS["GlobalSidebar"]
+            WV["WorkspaceView"]
+        end
+        subgraph Services["Services Layer · Axios + Fetch"]
+            MA["mapApi.js"]
+            NA["nodeApi.js"]
+            FA["folderApi.js"]
+            AA["aiApi.js (SSE)"]
+        end
+        ED --> CC
+    end
+
+    subgraph BACKEND["BACKEND · Node.js · Express 5 · Port 5000"]
+        direction TB
+        RT["Routes"] --> CT["Controllers"]
+        CT --> SV["Services"]
+        SV --> MG["Mongoose ODM"]
+    end
+
+    subgraph AI_ENGINE["AI ENGINE · Python · FastAPI · Port 8001"]
+        direction TB
+        EP1["/api/ai/stream-nodes"]
+        EP2["/api/ai/stream-automap"]
+        EP3["/api/ai/generate-nodes"]
+        EP4["/api/ai/models"]
+        LC["LangChain + ChatOllama"]
+        EP1 & EP2 & EP3 --> LC
+    end
+
+    subgraph DATA["DATA LAYER"]
+        MONGO[("MongoDB\naxonflow_db")]
+        FS[("File System\n./uploads")]
+    end
+
+    subgraph INFERENCE["INFERENCE LAYER"]
+        OL["Ollama Server\nPort 11434"]
+        M1["llama3 / llama3.1"]
+        M2["mistral"]
+        M3["gemma / codellama"]
+        OL --- M1 & M2 & M3
+    end
+
+    MA & NA & FA -->|"HTTP REST"| BACKEND
+    AA -->|"HTTP SSE Stream"| AI_ENGINE
+    MG --> MONGO
+    SV --> FS
+    LC --> OL
+
+    style CLIENT fill:#1a1a2e,stroke:#6366f1,color:#e0e0ff
+    style BACKEND fill:#0d1b2a,stroke:#3b82f6,color:#e0e0ff
+    style AI_ENGINE fill:#1b0d2a,stroke:#a855f7,color:#e0e0ff
+    style DATA fill:#0a1a0a,stroke:#22c55e,color:#e0e0ff
+    style INFERENCE fill:#1a0d0d,stroke:#f97316,color:#e0e0ff
 ```
 
 ---
