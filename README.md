@@ -439,83 +439,98 @@ Workspace (string) → Folder (nested) → Map (metadata) → Nodes (content)
 ## 🔄 Data Flow
 
 ### 1. Mind Map Creation Flow
-```
-User clicks "New Map"
-       │
-       ▼
-Frontend (Dashboard.jsx)
-  └── mapApi.createMap(name)
-       │
-       ▼
-Backend POST /api/maps/create
-  └── mapService.createMap()
-       ├── 1. Create Map document (metadata)
-       ├── 2. Create Root Node document (content)
-       └── 3. Link rootNodeId back to Map
-       │
-       ▼
-Frontend navigates to /map/:id
-  └── Editor.jsx loads
-       └── nodeApi.fetchMapNodes(mapId)
-            │
-            ▼
-       CanvasContainer receives initialNodes
-         └── useCanvasState hook
-              ├── filterExpandedNodes()     — prune collapsed subtrees
-              ├── buildReactFlowData()      — D3 layout computation
-              │    ├── d3.stratify()         — flat list → tree hierarchy
-              │    ├── d3.tree()             — calculate positions
-              │    └── buildColorMap()       — assign branch colors
-              └── React Flow renders nodes + edges
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend (Dashboard.jsx)
+    participant BE as Backend (Express)
+    participant DB as MongoDB (Mongoose)
+
+    User->>FE: Click "New Map"
+    FE->>BE: POST /api/maps/create {name}
+    Note over BE: mapService.createMap()
+    BE->>DB: 1. Create Map document (metadata)
+    BE->>DB: 2. Create Root Node document (content)
+    BE->>DB: 3. Link rootNodeId to Map
+    DB-->>BE: Success
+    BE-->>FE: Return new Map object
+    FE->>FE: Navigate to /map/:id
+    Note over FE: Editor.jsx mounts
+    FE->>BE: GET /api/nodes/map/:mapId
+    BE->>DB: Find nodes by mapId
+    DB-->>BE: Return nodes list
+    BE-->>FE: Return nodes array
+    Note over FE: useCanvasState layout triggers
+    FE->>FE: Prune collapsed nodes & run D3 tree layout
+    FE->>User: Render nodes and connections on canvas
 ```
 
 ### 2. AI Node Generation Flow (SSE Streaming)
-```
-User selects a node → clicks "AI Generate"
-       │
-       ▼
-CanvasContainer → aiApi.streamAINodes(prompt, parentId, model)
-       │
-       ▼
-Frontend sends POST to AI Engine :8001/api/ai/stream-nodes
-       │
-       ▼
-AI Engine (FastAPI)
-  └── stream_mindmap_agent()
-       ├── ChatOllama(model) ← connects to Ollama :11434
-       ├── ChatPromptTemplate (system + human messages)
-       └── chain.stream() yields chunks
-            │
-            ├── yield {type: "token", content: "..."} ──→ SSE data line
-            ├── yield {type: "token", content: "..."} ──→ SSE data line
-            └── yield {type: "result", data: {nodes}} ──→ SSE data line
-                     │
-                     ▼
-Frontend parses SSE stream
-  └── onResult callback
-       ├── nodeApi.bulkCreateNodes(newNodes) → Backend → MongoDB
-       └── setBackendNodes([...prev, ...inserted])
-            └── D3 re-layout triggers → Canvas re-renders
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend (CanvasContainer)
+    participant AI as AI Engine (FastAPI :8001)
+    participant OL as Ollama Server (:11434)
+    participant BE as Backend (Express :5000)
+
+    User->>FE: Select Node -> Click "AI Generate"
+    FE->>AI: POST /api/ai/stream-nodes {prompt, parentId, model}
+    Note over AI: stream_mindmap_agent()
+    AI->>OL: Connect & request stream via ChatOllama
+    loop Streaming tokens
+        OL-->>AI: Yield text chunk
+        AI-->>FE: SSE data: {type: "token", content: "..."}
+    end
+    OL-->>AI: Final response
+    Note over AI: extract_json(full_text)
+    AI-->>FE: SSE data: {type: "result", data: {nodes}}
+    Note over FE: onResult callback triggers
+    FE->>BE: POST /api/nodes/bulk-create {newNodes}
+    BE->>BE: Mongoose bulk insert
+    BE-->>FE: Return created nodes
+    Note over FE: useCanvasState: setBackendNodes()
+    Note over FE: Run D3 re-layout & assign branch colors
+    FE->>User: Re-render canvas with new subtopics
 ```
 
 ### 3. Node Interaction Flow
-```
-User action on canvas (click, drag, edit, delete)
-       │
-       ├── Click node → setFocusedNodeId → keyboard shortcuts enabled
-       │
-       ├── Tab key → openNodeInput('child') → inline input → createNode API
-       │
-       ├── Enter key → openNodeInput('sibling') → inline input → createNode API
-       │
-       ├── F2 key → openNodeInput('rename') → inline input → updateNode API
-       │
-       ├── Delete key → deleteNodeRecursive API (cascading delete)
-       │
-       ├── Drag node → onNodeDrag → hovering over target?
-       │    └── Drop on target → useDragReparent → updateNode({parentId: newParent})
-       │
-       └── All mutations → setBackendNodes() → D3 recalculates → React Flow re-renders
+
+```mermaid
+flowchart TD
+    User([User Canvas Action]) --> Click[Click Node]
+    User --> Tab[Press Tab Key]
+    User --> Enter[Press Enter Key]
+    User --> F2[Press F2 Key]
+    User --> Del[Press Delete Key]
+    User --> Drag[Drag Node]
+
+    Click -->|Focus Node| ToggleShortcuts[Enable Keyboard Shortcuts]
+    
+    Tab -->|New Child| InlineInput1[Open Inline Input]
+    InlineInput1 -->|Submit| CreateNodeAPI[nodeApi.createNode]
+    
+    Enter -->|New Sibling| InlineInput2[Open Inline Input]
+    InlineInput2 -->|Submit| CreateNodeAPI
+    
+    F2 -->|Rename| InlineInput3[Open Inline Input]
+    InlineInput3 -->|Submit| UpdateNodeAPI[nodeApi.updateNode]
+    
+    Del -->|Delete subtree| DeleteAPI[nodeApi.deleteNodeRecursive]
+    
+    Drag -->|Reparent node| HoverCheck{Hovering over target?}
+    HoverCheck -->|Yes| DragReparent[useDragReparent]
+    DragReparent -->|Drop| UpdateParentAPI[nodeApi.updateNode parentId]
+    
+    CreateNodeAPI & UpdateNodeAPI & DeleteAPI & UpdateParentAPI --> UpdateState[setBackendNodes]
+    UpdateState --> RecalcD3[Recalculate D3 Layout]
+    RecalcD3 --> ReRender[React Flow Redraws Canvas]
+
+    classDef default fill:#0f172a,stroke:#3b82f6,stroke-width:1.5px,color:#f8fafc;
 ```
 
 ---
@@ -611,113 +626,105 @@ Navigate to `http://localhost:5173` in your browser.
 
 ### High-Level Design (HLD)
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                        │
-│  ┌──────────────────────────────────────────────────────────┐    │
-│  │              React SPA (Vite Dev Server)                 │    │
-│  │  • React Router (client-side navigation)                │    │
-│  │  • React Context API (auth state management)            │    │
-│  │  • React Flow (canvas rendering engine)                 │    │
-│  │  • D3-Hierarchy (graph layout algorithms)               │    │
-│  └──────────────────────────────────────────────────────────┘    │
-└──────────────────────┬───────────────────┬───────────────────────┘
-                       │ REST (JSON)       │ SSE Stream
-                       ▼                   ▼
-┌──────────────────────────────┐ ┌─────────────────────────────────┐
-│      APPLICATION LAYER       │ │      INTELLIGENCE LAYER         │
-│  ┌────────────────────────┐  │ │  ┌───────────────────────────┐  │
-│  │   Express.js Server    │  │ │  │    FastAPI Server          │  │
-│  │                        │  │ │  │                           │  │
-│  │  • Auth Middleware      │  │ │  │  • LangChain Agent        │  │
-│  │  • Route Handlers      │  │ │  │  • Prompt Templates       │  │
-│  │  • Service Layer        │  │ │  │  • SSE Streaming          │  │
-│  │  • File Upload (Multer) │  │ │  │  • Tool Integration       │  │
-│  └────────────────────────┘  │ │  └───────────────────────────┘  │
-└──────────────┬───────────────┘ └───────────────┬─────────────────┘
-               │                                 │
-               ▼                                 ▼
-┌──────────────────────────────┐ ┌─────────────────────────────────┐
-│        DATA LAYER            │ │       INFERENCE LAYER            │
-│  ┌────────────────────────┐  │ │  ┌───────────────────────────┐  │
-│  │      MongoDB            │  │ │  │     Ollama Server          │  │
-│  │  • maps collection      │  │ │  │  • LLaMA 3 / 3.1          │  │
-│  │  • nodes collection     │  │ │  │  • Mistral                 │  │
-│  │  • folders collection   │  │ │  │  • Gemma / CodeLlama       │  │
-│  └────────────────────────┘  │ │  └───────────────────────────┘  │
-│  ┌────────────────────────┐  │ └─────────────────────────────────┘
-│  │   File System (uploads) │  │
-│  └────────────────────────┘  │
-└──────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph PL ["PRESENTATION LAYER (Client)"]
+        direction LR
+        ReactApp["React SPA (Vite)<br>• React Flow (Canvas)<br>• D3-Hierarchy (Layout)<br>• React Context (Auth State)"]
+    end
+
+    subgraph AL ["APPLICATION LAYER (Server)"]
+        direction LR
+        ExpressServer["Express.js Server<br>• Auth Middleware<br>• Service Layer Pattern<br>• Multer (File Upload)"]
+    end
+
+    subgraph IL ["INTELLIGENCE LAYER (AI)"]
+        direction LR
+        FastAPIServer["FastAPI AI Engine<br>• LangChain Agent<br>• SSE Streaming Client<br>• Web Search & File Tools"]
+    end
+
+    subgraph DL ["DATA LAYER"]
+        direction LR
+        MongoDB[("MongoDB Database<br>• Maps, Nodes, Folders")]
+        FS[("File System<br>• File Uploads")]
+    end
+
+    subgraph INF ["INFERENCE LAYER"]
+        direction LR
+        Ollama[("Ollama Server<br>• LLaMA 3 / 3.1 / Mistral / Gemma")]
+    end
+
+    %% Communication protocols
+    ReactApp -->|"REST API (JSON / Multipart)"| ExpressServer
+    ReactApp -->|"SSE Stream (HTTP)"| FastAPIServer
+    ExpressServer -->|"Mongoose ODM"| MongoDB
+    ExpressServer -->|"Disk Write"| FS
+    FastAPIServer -->|"LangChain / Ollama SDK"| Ollama
+    
+    %% Styling
+    style PL fill:#111827,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style AL fill:#111827,stroke:#10b981,stroke-width:2px,color:#fff
+    style IL fill:#111827,stroke:#8b5cf6,stroke-width:2px,color:#fff
+    style DL fill:#111827,stroke:#f59e0b,stroke-width:2px,color:#fff
+    style INF fill:#111827,stroke:#ef4444,stroke-width:2px,color:#fff
 ```
 
 ### Low-Level Design (LLD)
 
 #### Backend Service Layer Pattern
-```
-HTTP Request
-    │
-    ▼
-Route (mapRoutes.js)          ←  URL matching + HTTP method binding
-    │
-    ▼
-Controller (mapController.js) ←  Request parsing, auth check, response formatting
-    │
-    ▼
-Service (mapService.js)       ←  Business logic, data transformation, cross-model operations
-    │
-    ▼
-Model (Map.js / Node.js)     ←  Mongoose schema, validation, DB queries
-    │
-    ▼
-MongoDB                       ←  Document storage
+
+```mermaid
+flowchart TD
+    Req([HTTP Request]) --> Route["Route (mapRoutes.js)"]
+    Route -->|URL Matching & Method Binding| Ctrl["Controller (mapController.js)"]
+    Ctrl -->|Request Parsing & Auth Verification| Service["Service (mapService.js)"]
+    Service -->|Business Logic & Transaction Management| Model["Model (Map.js)"]
+    Model -->|Mongoose DB Operations| DB[(MongoDB)]
+
+    classDef default fill:#0f172a,stroke:#10b981,stroke-width:1.5px,color:#e2e8f0;
 ```
 
 #### Frontend State Management Pattern
-```
-User Interaction
-    │
-    ▼
-Page Component (Editor.jsx)         ← Container: holds state, calls APIs
-    │
-    ├── useCanvasState hook          ← Manages backendNodes[], computes D3 layout
-    │     ├── filterExpandedNodes()  ← Prunes collapsed subtrees
-    │     └── buildReactFlowData()   ← Converts flat nodes → positioned React Flow nodes/edges
-    │
-    ├── useCanvasActions hook        ← CRUD mutations (create, rename, delete, copy, paste)
-    │     └── Calls nodeApi.*        ← API layer → Backend
-    │
-    ├── useCanvasEvents hook         ← Keyboard shortcuts, click handlers, hover effects
-    │
-    └── useDragReparent hook         ← Drag-drop reparenting with visual drop-target feedback
+
+```mermaid
+flowchart TD
+    UI([User Interaction]) --> Page["Editor.jsx (Container Page)"]
+    Page -->|State: backendNodes[]| Hook1["useCanvasState.js"]
+    Page -->|Action Triggers| Hook2["useCanvasActions.js"]
+    
+    Hook1 -->|1. filterExpandedNodes()| Prune["Prune Collapsed Subtrees"]
+    Prune -->|2. d3.stratify()| Hierarchy["Flat List ➔ Hierarchical Tree"]
+    Hierarchy -->|3. d3.tree()| Layout["Compute Node X/Y Coordinates"]
+    Layout -->|4. buildColorMap()| Color["Assign Harmonic Branch Colors"]
+    Color -->|5. Update Viewport| RFNodes["React Flow Nodes & Edges"]
+    
+    Hook2 -->|API Calls| API["nodeApi.js / mapApi.js"]
+    API -->|HTTP REST Request| BE[Backend Server]
+    BE -->|Update DB| Hook2
+
+    classDef default fill:#0f172a,stroke:#3b82f6,stroke-width:1.5px,color:#e2e8f0;
 ```
 
 #### AI Agent Architecture
-```
-Request (prompt, model)
-    │
-    ▼
-ChatPromptTemplate
-    ├── System: "You are a Mind Map Architect..."
-    └── Human: "Generate subtopics for: {prompt}"
-    │
-    ▼
-ChatOllama (LangChain)
-    ├── model selection (llama3, mistral, etc.)
-    ├── temperature tuning (0.2 for nodes, 0.3 for full maps)
-    └── optional tool binding (web_search, file_read)
-    │
-    ▼
-chain.stream()  →  yields token chunks  →  SSE events
-    │
-    ▼
-extract_json(full_text)
-    ├── Try: json.loads(text)
-    ├── Fallback: regex match [...] or {...}
-    └── Fallback: split by newlines
-    │
-    ▼
-Structured Result → {parent_id, nodes: [...]} or {tree: {...}}
+
+```mermaid
+flowchart TD
+    Req([Request: prompt, model]) --> PromptTemplate["ChatPromptTemplate"]
+    PromptTemplate -->|"System & User Messages"| Ollama["ChatOllama (LangChain)"]
+    Ollama -->|Optional Tools| ToolCheck{Tools enabled?}
+    ToolCheck -->|Yes| Tools["Web Search / File Reader"]
+    Tools --> Ollama
+    Ollama -->|Streamed Output| Stream["chain.stream() yields tokens"]
+    Stream --> SSE["SSE Client Streams to UI"]
+    
+    Stream -->|Complete Output| Extract["extract_json(full_text)"]
+    Extract --> ParseCheck{JSON valid?}
+    ParseCheck -->|Yes| Out[Structured Node List]
+    ParseCheck -->|No| RegexFallback["Regex match [...] or {...}"]
+    RegexFallback --> SplitFallback["Split by newlines / list markers"]
+    SplitFallback --> Out
+
+    classDef default fill:#0f172a,stroke:#8b5cf6,stroke-width:1.5px,color:#e2e8f0;
 ```
 
 ---
@@ -781,151 +788,172 @@ flowchart LR
 
 ## 📊 UML Class Diagram
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      «Mongoose Model»                    │
-│                          Map                             │
-├─────────────────────────────────────────────────────────┤
-│  - _id: ObjectId                                         │
-│  - name: String                                          │
-│  - userId: String                                        │
-│  - rootNodeId: ObjectId → Node                           │
-│  - workspace: String                                     │
-│  - folderId: ObjectId → Folder                           │
-│  - template: String                                      │
-│  - isFavorite: Boolean                                   │
-│  - isTrashed: Boolean                                    │
-│  - tags: [String]                                        │
-│  - lastAccessedAt: Date                                  │
-│  - createdAt: Date                                       │
-│  - updatedAt: Date                                       │
-├─────────────────────────────────────────────────────────┤
-│  + toJSON(): Object {id, ...fields}                      │
-└───────────────┬────────────────┬────────────────────────┘
-                │ 1          *   │ 0..1
-                │                │
-         has rootNode      belongs to
-                │                │
-                ▼                ▼
-┌──────────────────────────────┐  ┌──────────────────────────────┐
-│      «Mongoose Model»        │  │      «Mongoose Model»        │
-│           Node                │  │          Folder               │
-├──────────────────────────────┤  ├──────────────────────────────┤
-│  - _id: ObjectId              │  │  - _id: ObjectId              │
-│  - mapId: ObjectId → Map      │  │  - name: String               │
-│  - userId: String             │  │  - workspace: String          │
-│  - parentId: ObjectId → Node  │  │  - parentId: ObjectId → Folder│
-│  - name: String               │  │  - userId: String             │
-│  - isExpanded: Boolean        │  │  - createdAt: Date            │
-│  - notes: [String]            │  │  - updatedAt: Date            │
-│  - links: [LinkSchema]        │  ├──────────────────────────────┤
-│  - files: [FileSchema]        │  │  + toJSON(): Object           │
-│  - status: String             │  └──────────────────────────────┘
-│  - x: Number                  │          ▲
-│  - y: Number                  │          │ self-referencing
-│  - createdAt: Date            │          │ (parentId → Folder)
-│  - updatedAt: Date            │          │ infinite nesting
-├──────────────────────────────┤          │
-│  + toJSON(): Object           │
-└──────────────────────────────┘
-         ▲
-         │ self-referencing
-         │ (parentId → Node)
-         │ tree hierarchy
+```mermaid
+classDiagram
+    class Map {
+        +ObjectId _id
+        +String name
+        +String userId
+        +ObjectId rootNodeId
+        +String workspace
+        +ObjectId folderId
+        +String template
+        +Boolean isFavorite
+        +Boolean isTrashed
+        +String[] tags
+        +Date lastAccessedAt
+        +Date createdAt
+        +Date updatedAt
+        +toJSON() Object
+    }
 
-┌──────────────────┐  ┌──────────────────┐
-│  «Sub-Schema»     │  │  «Sub-Schema»     │
-│   LinkSchema      │  │   FileSchema      │
-├──────────────────┤  ├──────────────────┤
-│  - title: String  │  │  - fileName: String│
-│  - url: String    │  │  - fileUrl: String │
-└──────────────────┘  └──────────────────┘
+    class Node {
+        +ObjectId _id
+        +ObjectId mapId
+        +String userId
+        +ObjectId parentId
+        +String name
+        +Boolean isExpanded
+        +String[] notes
+        +LinkSchema[] links
+        +FileSchema[] files
+        +String status
+        +Number x
+        +Number y
+        +Date createdAt
+        +Date updatedAt
+        +toJSON() Object
+    }
 
+    class Folder {
+        +ObjectId _id
+        +String name
+        +String workspace
+        +ObjectId parentId
+        +String userId
+        +Date createdAt
+        +Date updatedAt
+        +toJSON() Object
+    }
 
-┌─────────────────────────────────────────────────────────┐
-│                   «Service Classes»                      │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌─────────────────────┐  ┌─────────────────────────┐   │
-│  │    MapService        │  │     NodeService          │   │
-│  ├─────────────────────┤  ├─────────────────────────┤   │
-│  │ + listMaps()         │  │ + getNodesByMap()        │   │
-│  │ + createMap()        │  │ + createNode()           │   │
-│  │ + updateMap()        │  │ + updateNode()           │   │
-│  │ + duplicateMap()     │  │ + updatePosition()       │   │
-│  │ + bulkUpdateMaps()   │  │ + deleteNodeRecursive()  │   │
-│  └─────────────────────┘  │ + bulkUpdateNodes()      │   │
-│                            │ + bulkCreateNodes()      │   │
-│  ┌─────────────────────┐  │ + toggleExpansion()      │   │
-│  │   FolderService      │  └─────────────────────────┘   │
-│  ├─────────────────────┤                                 │
-│  │ + getWorkspaces()    │  ┌─────────────────────────┐   │
-│  │ + renameWorkspace()  │  │  «Pydantic Models»       │   │
-│  │ + deleteWorkspace()  │  ├─────────────────────────┤   │
-│  │ + getFolders()       │  │ NodeGenRequest           │   │
-│  │ + createFolder()     │  │  - prompt: str           │   │
-│  │ + deleteFolderRec()  │  │  - parent_node_id: str   │   │
-│  └─────────────────────┘  │  - model: str = "llama3"  │   │
-│                            ├─────────────────────────┤   │
-│                            │ AutoMapRequest           │   │
-│                            │  - topic: str            │   │
-│                            │  - model: str = "llama3"  │   │
-│                            └─────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
+    class LinkSchema {
+        +String title
+        +String url
+    }
+
+    class FileSchema {
+        +String fileName
+        +String fileUrl
+    }
+
+    class MapService {
+        +listMaps()
+        +createMap()
+        +updateMap()
+        +duplicateMap()
+        +bulkUpdateMaps()
+    }
+
+    class NodeService {
+        +getNodesByMap()
+        +createNode()
+        +updateNode()
+        +updatePosition()
+        +deleteNodeRecursive()
+        +bulkUpdateNodes()
+        +bulkCreateNodes()
+        +toggleExpansion()
+    }
+
+    class FolderService {
+        +getWorkspaces()
+        +renameWorkspace()
+        +deleteWorkspace()
+        +getFolders()
+        +createFolder()
+        +deleteFolderRec()
+    }
+
+    class NodeGenRequest {
+        +String prompt
+        +String parent_node_id
+        +String model
+    }
+
+    class AutoMapRequest {
+        +String topic
+        +String model
+    }
+
+    Map "1" *-- "1" Node : has rootNode
+    Map "1" *-- "*" Node : belongs to map
+    Folder "1" *-- "*" Map : contains
+    Folder "0..1" <-- "1" Folder : parentId (nested folders)
+    Node "0..1" <-- "1" Node : parentId (tree hierarchy)
+    Node "1" *-- "*" LinkSchema : has links
+    Node "1" *-- "*" FileSchema : has files
 ```
 
 ---
 
 ## 🧩 Frontend Component Architecture
+```mermaid
+flowchart TD
+    StrictMode["&lt;StrictMode&gt;"] --> AuthProvider["&lt;AuthProvider&gt;<br>(Context: user, auth status)"]
+    AuthProvider --> BrowserRouter["&lt;BrowserRouter&gt;"]
+    BrowserRouter --> App["&lt;App&gt;<br>(Axios setup + Routing)"]
+    App --> AppRoutes["&lt;AppRoutes&gt;"]
 
-```
-<StrictMode>
-└── <AuthProvider>              ← React Context: {isAuthenticated, user, login, logout}
-    └── <BrowserRouter>
-        └── <App>               ← Sets up Axios interceptors
-            └── <AppRoutes>     ← Route matching
-                │
-                ├── /welcome → <LandingPage>
-                │   └── <LoginModal>
-                │
-                ├── / → <ProtectedRoute> → <Dashboard>
-                │   ├── <GlobalSidebar>
-                │   ├── <DashboardHeader>
-                │   ├── <TemplateGrid>
-                │   ├── <ActionCards>
-                │   ├── <RecentMapsGrid>
-                │   │   └── <MapCard> (×N)
-                │   ├── <AiGeneratorModal>
-                │   └── <ComingSoonModal>
-                │
-                ├── /maps → <MyMaps filter="all">
-                ├── /favorites → <MyMaps filter="favorites">
-                ├── /shared → <MyMaps filter="shared">
-                ├── /trash → <MyMaps filter="trash">
-                │   ├── <GlobalSidebar>
-                │   └── <MapCard> (×N)
-                │
-                ├── /workspaces → <WorkspaceView>
-                ├── /workspaces/:name → <WorkspaceView>
-                │   ├── <GlobalSidebar>
-                │   ├── <WorkspaceHeader>
-                │   ├── <WorkspaceCard> / <FolderCard>
-                │   └── <CreateItemModal>
-                │
-                └── /map/:id → <Editor>
-                    ├── <TopBar>
-                    └── <CanvasContainer>
-                        └── <ErrorBoundary>
-                            └── <ReactFlowProvider>
-                                └── <MindMapInner>
-                                    ├── <ReactFlow>
-                                    │   ├── <D3StyleNode> (×N)
-                                    │   ├── <D3BezierEdge> (×N)
-                                    │   ├── <Background>
-                                    │   └── <Controls>
-                                    ├── <ActionToolbar>
-                                    ├── <FloatingToolbar>
-                                    └── <BulkImportModal>
+    subgraph PublicRoutes ["Public Routes"]
+        AppRoutes --> LandingPage["&lt;LandingPage&gt;"]
+        LandingPage --> LoginModal["&lt;LoginModal&gt;"]
+    end
+
+    subgraph ProtectedRoutes ["Protected Dashboard & Folders"]
+        AppRoutes --> ProtectedRoute["&lt;ProtectedRoute&gt;"]
+        ProtectedRoute --> GlobalSidebar["&lt;GlobalSidebar&gt;<br>(Recursive Folder Tree)"]
+        
+        ProtectedRoute --> Dashboard["&lt;Dashboard&gt;"]
+        Dashboard --> DashboardHeader["&lt;DashboardHeader&gt;"]
+        Dashboard --> TemplateGrid["&lt;TemplateGrid&gt;"]
+        Dashboard --> ActionCards["&lt;ActionCards&gt;"]
+        Dashboard --> RecentMapsGrid["&lt;RecentMapsGrid&gt;"]
+        Dashboard --> AiGeneratorModal["&lt;AiGeneratorModal&gt;"]
+        Dashboard --> ComingSoonModal["&lt;ComingSoonModal&gt;"]
+        RecentMapsGrid --> MapCard1["&lt;MapCard&gt; (xN)"]
+        
+        ProtectedRoute --> MyMaps["&lt;MyMaps&gt;"]
+        MyMaps --> MapCard2["&lt;MapCard&gt; (xN)"]
+
+        ProtectedRoute --> WorkspaceView["&lt;WorkspaceView&gt;"]
+        WorkspaceView --> WorkspaceHeader["&lt;WorkspaceHeader&gt;"]
+        WorkspaceView --> WorkspaceCard["&lt;WorkspaceCard&gt;"]
+        WorkspaceView --> FolderCard["&lt;FolderCard&gt;"]
+        WorkspaceView --> CreateItemModal["&lt;CreateItemModal&gt;"]
+    end
+
+    subgraph EditorRoute ["Interactive Mind Map Editor"]
+        AppRoutes --> Editor["&lt;Editor&gt;"]
+        Editor --> TopBar["&lt;TopBar&gt;"]
+        Editor --> CanvasContainer["&lt;CanvasContainer&gt;<br>(ErrorBoundary + Provider)"]
+        CanvasContainer --> ReactFlowProvider["&lt;ReactFlowProvider&gt;"]
+        ReactFlowProvider --> MindMapInner["&lt;MindMapInner&gt;<br>(React Flow Canvas)"]
+        
+        MindMapInner --> ReactFlow["&lt;ReactFlow&gt;"]
+        ReactFlow --> D3StyleNode["&lt;D3StyleNode&gt;<br>(Custom node renderer)"]
+        ReactFlow --> D3BezierEdge["&lt;D3BezierEdge&gt;<br>(Layout-aware curves)"]
+        ReactFlow --> RFControls["&lt;Controls&gt; / &lt;Background&gt;"]
+        
+        MindMapInner --> ActionToolbar["&lt;ActionToolbar&gt;"]
+        MindMapInner --> FloatingToolbar["&lt;FloatingToolbar&gt;"]
+        MindMapInner --> BulkImportModal["&lt;BulkImportModal&gt;"]
+    end
+
+    style StrictMode fill:#0f172a,stroke:#3b82f6,color:#fff
+    style AuthProvider fill:#0f172a,stroke:#3b82f6,color:#fff
+    style PublicRoutes fill:#020617,stroke:#ef4444,stroke-dasharray: 5 5,color:#fff
+    style ProtectedRoutes fill:#020617,stroke:#10b981,stroke-dasharray: 5 5,color:#fff
+    style EditorRoute fill:#020617,stroke:#8b5cf6,stroke-dasharray: 5 5,color:#fff
 ```
 
 ---
