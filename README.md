@@ -692,10 +692,10 @@ flowchart TD
     Page -->|State: backendNodes| Hook1["useCanvasState.js"]
     Page -->|Action Triggers| Hook2["useCanvasActions.js"]
     
-    Hook1 -->|1. filterExpandedNodes()| Prune["Prune Collapsed Subtrees"]
-    Prune -->|2. d3.stratify()| Hierarchy["Flat List ➔ Hierarchical Tree"]
-    Hierarchy -->|3. d3.tree()| Layout["Compute Node X/Y Coordinates"]
-    Layout -->|4. buildColorMap()| Color["Assign Harmonic Branch Colors"]
+    Hook1 -->|1. filterExpandedNodes| Prune["Prune Collapsed Subtrees"]
+    Prune -->|2. d3.stratify| Hierarchy["Flat List ➔ Hierarchical Tree"]
+    Hierarchy -->|3. d3.tree| Layout["Compute Node X/Y Coordinates"]
+    Layout -->|4. buildColorMap| Color["Assign Harmonic Branch Colors"]
     Color -->|5. Update Viewport| RFNodes["React Flow Nodes & Edges"]
     
     Hook2 -->|API Calls| API["nodeApi.js / mapApi.js"]
