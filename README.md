@@ -1,6 +1,3 @@
-Here's the full README.md:
-
-```markdown
 # AxonFlow 🧠⚡
 
 > **AI-Powered Autonomous Mind-Mapping Engine** — Transform messy ideas into structured knowledge graphs at the speed of thought.
@@ -885,11 +882,3 @@ Structured Result → {parent_id, nodes: [...]} or {tree: {...}}
 ## 📜 License
 
 This project is licensed under the [MIT License](./LICENSE).
-
-```
-
----
-
-There it is — the full `README.md`. You can copy-paste this directly into your `c:\Users\Akshat Raj\OneDrive\Desktop\important\Project\AxonFlow\README.md`. 
-
-Want me to also write this to the file directly and create the separate HLD/LLD, Data Flow Diagram, and UML Class Diagram as dedicated markdown files in a `/docs` folder?
