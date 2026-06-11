@@ -689,7 +689,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     UI([User Interaction]) --> Page["Editor.jsx (Container Page)"]
-    Page -->|State: backendNodes[]| Hook1["useCanvasState.js"]
+    Page -->|State: backendNodes| Hook1["useCanvasState.js"]
     Page -->|Action Triggers| Hook2["useCanvasActions.js"]
     
     Hook1 -->|1. filterExpandedNodes()| Prune["Prune Collapsed Subtrees"]
