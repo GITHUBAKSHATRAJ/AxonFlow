@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Static templates configuration data array used by both TemplateGrid and MapCard components
 export const templates = [
   { 
     name: 'Brainstorming', 
@@ -48,7 +49,14 @@ export const templates = [
   }
 ];
 
-const TemplateGrid = ({ handleCreateFromTemplate, setComingSoonTemplate }) => {
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * TemplateGrid displays a grid of visual template CTA layouts.
+ * 
+ * Concept: Iterates through template options. If a template is click-supported, 
+ * it triggers the creation callback. Otherwise, it updates context settings to show a coming-soon modal.
+ */
+function TemplateGrid({ handleCreateFromTemplate, setComingSoonTemplate }) {
   return (
     <div className="mb-12">
       <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-6">Recommended Templates</h3>
@@ -73,6 +81,6 @@ const TemplateGrid = ({ handleCreateFromTemplate, setComingSoonTemplate }) => {
       </div>
     </div>
   );
-};
+}
 
 export default TemplateGrid;

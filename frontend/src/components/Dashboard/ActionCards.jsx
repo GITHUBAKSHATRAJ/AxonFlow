@@ -1,9 +1,17 @@
 import React from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 
-const ActionCards = ({ handleCreateNew, setIsAiModalOpen }) => {
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * ActionCards is a Named Function component that displays CTA cards.
+ * 
+ * Concept: Passes click handlers up as props to coordinate modal state changes 
+ * and map initialization inside the dashboard container page.
+ */
+function ActionCards({ handleCreateNew, setIsAiModalOpen }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+      {/* Create New Blank Map CTA */}
       <button 
         onClick={handleCreateNew}
         className="group relative overflow-hidden bg-gradient-to-br from-[#1a1d27] to-[#141721] border border-border hover:border-border-focus rounded-3xl p-8 flex items-center gap-6 transition-all hover:-translate-y-1"
@@ -17,6 +25,7 @@ const ActionCards = ({ handleCreateNew, setIsAiModalOpen }) => {
         </div>
       </button>
 
+      {/* AI Map Generator trigger CTA */}
       <button 
         onClick={() => setIsAiModalOpen(true)}
         className="group relative overflow-hidden bg-gradient-to-br from-[#1a1d27] to-[#141721] border border-[#8b5cf6]/30 hover:border-[#8b5cf6] rounded-3xl p-8 flex items-center gap-6 transition-all hover:-translate-y-1"
@@ -31,6 +40,6 @@ const ActionCards = ({ handleCreateNew, setIsAiModalOpen }) => {
       </button>
     </div>
   );
-};
+}
 
 export default ActionCards;

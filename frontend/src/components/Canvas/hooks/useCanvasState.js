@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNodesState, useEdgesState } from '@xyflow/react';
-import { buildReactFlowData, filterExpandedNodes } from '../../../utils/flowUtils';// importing d3-hierarchy
+import { buildReactFlowData, filterExpandedNodes } from '../../../utils/flowUtils';
 import * as nodeApi from '../../../services/api/nodeApi';
 
 /**
- * useCanvasState hook
- * Manages the synchronization between backend nodes and React Flow state.
+ * [CUSTOM HOOK - useCanvasState]
+ * Concept: Encapsulates state variable synchronization between backend nodes data 
+ * and front-end React Flow graph visualization states (nodes, edges).
  */
-export const useCanvasState = (mapId, initialBackendNodes) => {
+export function useCanvasState(mapId, initialBackendNodes) {
     const [backendNodes, setBackendNodes] = useState(initialBackendNodes || []);
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -15,28 +16,29 @@ export const useCanvasState = (mapId, initialBackendNodes) => {
     const [layoutMode, setLayoutMode] = useState('horizontal');
     const [colorPalette, setColorPalette] = useState('mono');
 
-    // ── Update React Flow graph whenever backendNodes or visual settings change ──
-    useEffect(() => {
+    // [REACT HOOK: useEffect]
+    // Re-calculates and re-aligns D3 layout tree maps whenever nodes array or layouts settings change.
+    useEffect(function () {
         if (!backendNodes || backendNodes.length === 0) return;
 
-        // 1. Filter only nodes that should be visible (parent is expanded)
+        // 1. Filter out collapsed sub-branches
         const visibleNodes = filterExpandedNodes(backendNodes);
 
-        // 2. Run D3 layout and generate nodes/edges
+        // 2. Build D3 tree mapping coordinates
         const { nodes: flowNodes, edges: flowEdges } = buildReactFlowData(
             visibleNodes, 
             layoutMode, 
             colorPalette
         );
 
-        // 3. Enrich nodes with runtime callbacks
+        // 3. Attach interactive callbacks to node properties
         const enriched = flowNodes.map(node => ({
             ...node,
             data: {
                 ...node.data,
                 id: node.id,
                 hasChildren: backendNodes.some(n => n.parentId === node.id),
-                // Callback for expanding/collapsing a branch
+                // Expand / Collapse branch handler callback
                 onToggle: async (id, isExpanded) => {
                     setBackendNodes(prev => prev.map(n => n.id === id ? { ...n, isExpanded } : n));
                     try {
@@ -45,7 +47,7 @@ export const useCanvasState = (mapId, initialBackendNodes) => {
                         console.error('Failed to toggle node:', err);
                     }
                 },
-                // Callbacks for inline editing (drafts)
+                // Confirm node rename details
                 onDraftConfirm: async (id, newName, mode, targetId) => {
                     const name = newName.trim();
                     if (!name) {
@@ -69,6 +71,7 @@ export const useCanvasState = (mapId, initialBackendNodes) => {
                         console.error('Draft confirm failed:', err);
                     }
                 },
+                // Discard changes to node name
                 onDraftCancel: (id, mode) => {
                     if (mode === 'rename') {
                         setBackendNodes(prev => prev.map(n => n.id === id ? { ...n, _isEditing: false } : n));
@@ -97,4 +100,4 @@ export const useCanvasState = (mapId, initialBackendNodes) => {
         colorPalette,
         setColorPalette
     };
-};
+}

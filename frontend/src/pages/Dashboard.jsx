@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { Map as MapIcon } from 'lucide-react';
@@ -15,9 +15,19 @@ import RecentMapsGrid from '../components/Dashboard/RecentMapsGrid';
 import AiGeneratorModal from '../components/Dashboard/AiGeneratorModal';
 import ComingSoonModal from '../components/Dashboard/ComingSoonModal';
 
-const Dashboard = () => {
+/**
+ * [CONTAINER / NAMED COMPONENT]
+ * Dashboard is the primary orchestrator container component.
+ * We write it as a Named Function to make debugging simple.
+ */
+function Dashboard() {
   const navigate = useNavigate();
+  
+  // [REACT CONTEXT HOOK]
+  // Accesses the global authentication user details from the AuthProvider context.
   const { user } = useAuth();
+  
+  // [STATE HOOKS]
   const [maps, setMaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,12 +37,17 @@ const Dashboard = () => {
   const [selectedModel, setSelectedModel] = useState('llama3');
   const [comingSoonTemplate, setComingSoonTemplate] = useState(null);
 
-  useEffect(() => {
+  // [REACT HOOK: useEffect]
+  // Runs automatically upon component mounting. It pulls standalone maps and query models.
+  useEffect(function () {
     loadMaps(true);
-    aiApi.fetchAvailableModels().then(setAvailableModels).catch(() => setAvailableModels(['llama3']));
+    aiApi.fetchAvailableModels()
+      .then(setAvailableModels)
+      .catch(() => setAvailableModels(['llama3']));
   }, []);
 
-  const loadMaps = async (showLoading = true) => {
+  // [NAMED FUNCTION] - Load all map records
+  async function loadMaps(showLoading = true) {
     if (showLoading) setLoading(true);
     try {
       const data = await mapApi.fetchAllMaps({ all: 'true' });
@@ -42,18 +57,20 @@ const Dashboard = () => {
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }
 
-  const handleCreateNew = async () => {
+  // [NAMED FUNCTION] - Create a new blank map
+  async function handleCreateNew() {
     try {
       const res = await mapApi.createMap('New Idea Map');
       navigate(`/map/${res.id}`);
     } catch (err) {
       console.error('Failed to create map:', err);
     }
-  };
+  }
 
-  const handleCreateFromTemplate = async (templateName) => {
+  // [NAMED FUNCTION] - Create a map using a layout template
+  async function handleCreateFromTemplate(templateName) {
     try {
       setLoading(true);
       const res = await mapApi.createMap(`${templateName} Map`, templateName);
@@ -62,9 +79,10 @@ const Dashboard = () => {
       console.error('Failed to create map from template:', err);
       setLoading(false);
     }
-  };
+  }
 
-  const handleCreateAI = async () => {
+  // [NAMED FUNCTION] - Setup layout using AI models
+  async function handleCreateAI() {
     if (!aiPrompt.trim()) return;
     try {
       const res = await mapApi.createMap(aiPrompt.trim());
@@ -72,45 +90,44 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Failed to create AI map:', err);
     }
-  };
+  }
 
-  const togglePin = async (e, map) => {
+  // [NAMED FUNCTION] - Pin/favorite map item
+  async function togglePin(e, map) {
     if (e) e.stopPropagation();
     const newIsFavorite = !map.isFavorite;
+    // Optimistic Update: instantly refresh React state array so UI updates before network returns
     setMaps(prev => prev.map(m => m.id === map.id ? { ...m, isFavorite: newIsFavorite } : m));
     try {
       await mapApi.updateMapAttributes(map.id, { isFavorite: newIsFavorite });
     } catch (err) {
       console.error('Failed to pin:', err);
     }
-  };
+  }
 
-  const handleTrashMap = async (mapId) => {
-    // Optimistic Update: instantly remove it from the UI
-    // Capture a snapshot of the single item before dropping it
-    const mapBackup = maps.find(m => m.id === mapId);
+  // [NAMED FUNCTION] - Soft delete map item
+  async function handleTrashMap(mapId) {
     const updatedMaps = maps.filter(map => map.id !== mapId);
-    //It loops through the prev array, takes out the map that matches the ID we want to delete, and returns a totally new array containing the rest. React sees this new array in memory and instantly re-renders the UI to make the deleted map disappear.
-    setMaps(updatedMaps); //The JavaScript .filter() method automatically creates a brand-new array (a shallow copy). 
+    setMaps(updatedMaps); 
     try {
       await mapApi.updateMapAttributes(mapId, { isTrashed: true });
     } catch (err) {
       console.error('Failed to trash map:', err);
-      loadMaps(false); // Revert on failure
+      loadMaps(false); // Revert back to database state on error
     }
-  };
+  }
 
-  const handleDuplicateMap = async (mapId) => {
+  // [NAMED FUNCTION] - Clone map record
+  async function handleDuplicateMap(mapId) {
     try {
-      // Backend creates a full copy and returns the new map object
       const newMap = await mapApi.duplicateMap(mapId);
-      // Instantly inject the newly returned map into our React state array
-      setMaps(prev => [newMap, ...prev]); //Here, we are using the spread operator (...) to manually create a shallow copy. The square brackets [ ] tell JavaScript to create a brand-new array in memory.
+      setMaps(prev => [newMap, ...prev]); 
     } catch (err) {
       console.error('Failed to duplicate map:', err);
     }
-  };
+  }
 
+  // Dynamic calculations performed upon every render pass:
   const filteredMaps = maps.filter(m => (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
   const validMaps = filteredMaps.filter(m => !m.isTrashed);
   const recentMaps = [...validMaps].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 6);
@@ -120,6 +137,11 @@ const Dashboard = () => {
       <GlobalSidebar />
 
       <main className="flex-1 overflow-y-auto p-12 lg:p-16">
+        
+        {/* 
+          [CHILD COMPONENTS / PRESENTATION SEPARATION]
+          Values and event handlers are passed down to child components via props.{variable pass}
+        */}
         <DashboardHeader 
           user={user} 
           searchQuery={searchQuery} 
@@ -131,7 +153,7 @@ const Dashboard = () => {
           setComingSoonTemplate={setComingSoonTemplate} 
         />
 
-        {/* Quick Stats */}
+        {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-bg-card border border-border rounded-2xl p-6 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent-bg text-accent rounded-xl flex items-center justify-center">
@@ -159,6 +181,7 @@ const Dashboard = () => {
         />
       </main>
 
+      {/* [CONDITIONAL MODAL DIALOGS] */}
       {isAiModalOpen && (
         <AiGeneratorModal 
           setIsAiModalOpen={setIsAiModalOpen}
@@ -177,6 +200,6 @@ const Dashboard = () => {
       />
     </div>
   );
-};
+}
 
 export default Dashboard;

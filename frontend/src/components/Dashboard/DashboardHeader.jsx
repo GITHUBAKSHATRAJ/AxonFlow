@@ -1,7 +1,14 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 
-const DashboardHeader = ({ user, searchQuery, setSearchQuery }) => {
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * DashboardHeader is a Named Function component that displays welcome headers and search bars.
+ * 
+ * Concept: This is a controlled component for searching. Keystroke updates are propagated back to the
+ * parent component's state variables via the 'setSearchQuery' handler prop.
+ */
+function DashboardHeader({ user, searchQuery, setSearchQuery }) {
   return (
     <div className="flex justify-between items-center mb-12">
       <div>
@@ -23,6 +30,6 @@ const DashboardHeader = ({ user, searchQuery, setSearchQuery }) => {
       </div>
     </div>
   );
-};
+}
 
 export default DashboardHeader;

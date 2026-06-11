@@ -2,7 +2,14 @@ import React from 'react';
 import { X, Sparkles, Upload } from 'lucide-react';
 import { PrimaryButton } from '../UI/UIComponents';
 
-const AiGeneratorModal = ({
+/**
+ * [CHILD COMPONENT / DIALOG COMPONENT]
+ * AiGeneratorModal is a Named Function component that allows prompts input.
+ * 
+ * Concept: Controlled form inputs where values (aiPrompt, selectedModel) 
+ * are bound to parent-provided props. Updates propagate to the parent's state hooks on change.
+ */
+function AiGeneratorModal({
   setIsAiModalOpen,
   aiPrompt,
   setAiPrompt,
@@ -10,7 +17,7 @@ const AiGeneratorModal = ({
   selectedModel,
   setSelectedModel,
   handleCreateAI
-}) => {
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-bg-card border border-border rounded-[32px] w-full max-w-2xl p-8 shadow-2xl relative">
@@ -73,6 +80,6 @@ const AiGeneratorModal = ({
       </div>
     </div>
   );
-};
+}
 
 export default AiGeneratorModal;

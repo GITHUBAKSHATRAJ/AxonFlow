@@ -1,18 +1,28 @@
 //NOTE: Reviewed on 24th May, 2026
-
 import React, { useState } from 'react';
 import { useAuth } from '../context/authContext';
 import { Navigate } from 'react-router-dom';
-import { Brain, Zap, Share2, Shield, ChevronRight, Edit3, Sparkles } from 'lucide-react';
+import { Brain, ChevronRight } from 'lucide-react';
 
 // Import Components
 import LoginModal from '../components/Auth/LoginModal';
 
-const LandingPage = () => {
+/**
+ * [NAMED FUNCTION COMPONENT]
+ * We use standard named function syntax to make our main pages highly readable and easy to debug.
+ */
+function LandingPage() {
+    // [CONTEXT STATE HOOK]
+    // Fetches authentication parameters globally from our custom React Authentication Context.
     const { isAuthenticated } = useAuth();
+
+    // [LOCAL STATE HOOK]
+    // Tracks whether the login modal overlay dialog is active on the screen.
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-    // If already logged in, redirect to dashboard
+    // [CONDITIONAL REDIRECT ROUTE]
+    // If the context indicates the user is already logged in, we render the '<Navigate />' 
+    // React Router component to redirect them directly to the main workspaces/dashboard page.
     if (isAuthenticated) {
         return <Navigate to="/" replace />;
     }
@@ -31,9 +41,12 @@ const LandingPage = () => {
                         </span>
                     </div>
 
-
-
                     <div className="flex items-center gap-4">
+                        {/* 
+                          [INLINE ARROW FUNCTION]
+                          We use simple inline arrow functions for small event triggers 
+                          like toggling state values.
+                        */}
                         <button
                             onClick={() => setIsLoginModalOpen(true)}
                             className="px-6 py-2.5 rounded-full text-sm font-bold bg-white text-black hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-white/10"
@@ -49,7 +62,6 @@ const LandingPage = () => {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none -z-10" />
 
                 <div className="max-w-7xl mx-auto px-6 text-center">
-
                     <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-[1.1] tracking-tight animate-slide-up">
                         Map your thoughts <br />
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
@@ -70,18 +82,18 @@ const LandingPage = () => {
                         </button>
                     </div>
                 </div>
-
-
             </section>
 
-
-
-            {/* Login Modal */}
+            {/* 
+              [CONDITIONAL RENDERING]
+              Only loads and draws the '<LoginModal />' child component on screen
+              if 'isLoginModalOpen' is set to true.
+            */}
             {isLoginModalOpen && (
                 <LoginModal onClose={() => setIsLoginModalOpen(false)} />
             )}
         </div>
     );
-};
+}
 
 export default LandingPage;

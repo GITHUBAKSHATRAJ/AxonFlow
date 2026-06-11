@@ -12,14 +12,21 @@ import {
     Upload
 } from 'lucide-react';
 
-const FloatingToolbar = ({ config, onClose }) => {
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * FloatingToolbar is a Named Function component that acts as a contextual toolbar.
+ * 
+ * Concept: Positioned dynamically in space using absolute coordinate styles (x, y) 
+ * passed from the parent Canvas container.
+ */
+function FloatingToolbar({ config, onClose }) {
     if (!config) return null;
 
     const { x, y, actions } = config;
 
     return (
         <div
-            onClick={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()} // Stop canvas click handlers from firing
             style={{
                 position: 'fixed',
                 left: x,
@@ -58,9 +65,13 @@ const FloatingToolbar = ({ config, onClose }) => {
             <Btn icon={<Sparkles size={16} />} label="AI Generate" onClick={actions.openAI} ai />
         </div>
     );
-};
+}
 
-const Btn = ({ icon, label, onClick, danger, accent, ai }) => {
+/**
+ * [CHILD COMPONENT / BUTTON UTILITY]
+ * Btn is a Named Function representing toolbar action items.
+ */
+function Btn({ icon, label, onClick, danger, accent, ai }) {
     const [hovered, setHovered] = React.useState(false);
     
     let color = '#9ca3af';
@@ -98,10 +109,16 @@ const Btn = ({ icon, label, onClick, danger, accent, ai }) => {
             {icon}
         </button>
     );
-};
+}
 
-const Divider = () => (
-    <div style={{ width: '1px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 6px' }} />
-);
+/**
+ * [NAMED COMPONENT]
+ * Renders a vertical divider bar separator inside the toolbar.
+ */
+function Divider() {
+    return (
+        <div style={{ width: '1px', height: '20px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 6px' }} />
+    );
+}
 
 export default FloatingToolbar;

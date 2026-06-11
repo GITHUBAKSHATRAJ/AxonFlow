@@ -5,10 +5,19 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { X, LogIn, Loader2 } from 'lucide-react';
 
-const LoginModal = ({ onClose }) => {
+/**
+ * [CHILD COMPONENT / PRESENATIONAL MODAL]
+ * LoginModal is a Named Function component that presents authentication options.
+ * 
+ * Concept: Demonstrates state management (`useState`) to toggle loading spin indicators 
+ * during asynchronous simulation cycles. Uses cleanup handlers and prop triggers (`onClose`) 
+ * to handle portal closure interactions.
+ */
+function LoginModal({ onClose }) {
     const { login } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
 
+    // Inline event handler kept as an Arrow Function for concise utility behavior
     const handleDemoLogin = () => {
         setIsLoading(true);
         // Simulate a delay for the "Google Auth" experience
@@ -20,7 +29,7 @@ const LoginModal = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"> {/**Tailwind */}
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity"
@@ -88,6 +97,6 @@ const LoginModal = ({ onClose }) => {
             </div>
         </div>
     );
-};
+}
 
 export default LoginModal;

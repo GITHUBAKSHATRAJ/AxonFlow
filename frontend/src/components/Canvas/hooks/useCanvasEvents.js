@@ -1,10 +1,11 @@
 import { useCallback, useEffect } from 'react';
 
 /**
- * useCanvasEvents hook
- * Handles user interactions like hovering, clicking, and keyboard shortcuts.
+ * [CUSTOM HOOK - useCanvasEvents]
+ * Concept: Handles mouse interaction events (clicks, hovers) and triggers 
+ * keyboard shortcut handlers (F2, Tab, Enter, Delete) inside the canvas viewport.
  */
-export const useCanvasEvents = ({
+export function useCanvasEvents({
     nodes,
     backendNodes,
     setEdges,
@@ -16,12 +17,14 @@ export const useCanvasEvents = ({
     handleNativePaste,
     EDGE_HOVER,
     EDGE_DEFAULT
-}) => {
+}) {
 
-    const onHover = useCallback((nodeId) => {
+    // [REACT HOOK: useCallback]
+    // Memoizes hover listener function to prevent recalculating ancestral paths on every draw.
+    const onHover = useCallback(function (nodeId) {
         setHoveredNodeId(nodeId);
         
-        // Walk ancestor chain and collect edge IDs on the path
+        // Walk ancestor chain and collect edge IDs on the path to highlight connections
         const pathIds = new Set();
         let cur = backendNodes.find(n => n.id === nodeId);
         while (cur && cur.parentId) {
@@ -39,7 +42,8 @@ export const useCanvasEvents = ({
         })));
     }, [backendNodes, setEdges, setHoveredNodeId, EDGE_HOVER, EDGE_DEFAULT]);
 
-    const onHoverEnd = useCallback(() => {
+    // [REACT HOOK: useCallback]
+    const onHoverEnd = useCallback(function () {
         setHoveredNodeId(null);
         setEdges(prev => prev.map(e => ({
             ...e,
@@ -51,7 +55,8 @@ export const useCanvasEvents = ({
         })));
     }, [setEdges, setHoveredNodeId, EDGE_DEFAULT]);
 
-    const onNodeClick = useCallback((_, n) => {
+    // [REACT HOOK: useCallback]
+    const onNodeClick = useCallback(function (_, n) {
         setFocusedNodeId(n.id);
         setMenuConfig(null);
         if (n.data.hasChildren) {
@@ -59,23 +64,21 @@ export const useCanvasEvents = ({
         }
     }, [setFocusedNodeId, setMenuConfig]);
 
-    const onPaneClick = useCallback(() => {
+    // [REACT HOOK: useCallback]
+    const onPaneClick = useCallback(function () {
         setMenuConfig(null);
         setFocusedNodeId(null);
     }, [setFocusedNodeId, setMenuConfig]);
 
-    // Keyboard Shortcuts Logic
-    useEffect(() => {
+    // [REACT HOOK: useEffect]
+    // Hooks global window events to bind keyboard hotkeys when input boxes are inactive.
+    useEffect(function () {
         const handler = (e) => {
             if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-            
-            // We use a custom event or a ref to check if panels are open
-            // For now, we assume if no input is focused, shortcuts are active
             
             const focusedId = document.querySelector('.react-flow__node.selected')?.getAttribute('data-id');
             if (!focusedId) return;
 
-            // Find the node in the current React Flow state
             const rfNode = nodes.find(n => n.id === focusedId);
             if (!rfNode) return;
 
@@ -97,6 +100,7 @@ export const useCanvasEvents = ({
         window.addEventListener('keydown', handler);
         window.addEventListener('paste', handleNativePaste);
 
+        // Cleanup function removing keyboard listeners on component destruction
         return () => {
             window.removeEventListener('keydown', handler);
             window.removeEventListener('paste', handleNativePaste);
@@ -109,4 +113,4 @@ export const useCanvasEvents = ({
         onNodeClick,
         onPaneClick
     };
-};
+}

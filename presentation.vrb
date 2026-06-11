@@ -1,0 +1,26 @@
+\frametitle{FastAPI SSE Streaming \& JSON Parser}
+To avoid freezing the UI during LLM inference, Axon Flow streams responses using a FastAPI-based AI engine:
+  \vspace{0.3em}
+  \begin{center}
+    \begin{tikzpicture}[
+      node distance=0.8cm and 1.2cm,
+      box/.style={rectangle, rounded corners=4pt, draw=axonpurple, fill=axonpurple!5, minimum width=2.5cm, minimum height=0.6cm, align=center, font=\scriptsize\bfseries},
+      arrow/.style={-Stealth, thick, draw=axonpurple}
+    ]
+      \node[box] (fe) at (0,0) {React UI};
+      \node[box, right=of fe] (api) {FastAPI Server};
+      \node[box, right=of api] (ollama) {Ollama (Llama 3)};
+      \node[box, below=of api] (parser) {JSON Extractor};
+
+      \draw[arrow] (fe) -- node[above, font=\tiny]{Trigger Request} (api);
+      \draw[arrow] (api) -- node[above, font=\tiny]{LangChain Agent} (ollama);
+      \draw[arrow, bend right] (ollama) to node[right, font=\tiny]{Token Stream (SSE)} (fe);
+      \draw[arrow] (ollama) -- node[left, font=\tiny]{Final Text} (parser);
+      \draw[arrow] (parser) -- node[left, font=\tiny]{Parsed Array} (fe);
+    \end{tikzpicture}
+  \end{center}
+  \vspace{-0.5em}
+  \begin{itemize}
+    \item[\textcolor{axonpurple}{\tiny$\blacksquare$}] \textbf{SSE Streaming Protocol}: Emits raw text tokens to React's \texttt{EventSource} in real-time.
+    \item[\textcolor{axonpurple}{\tiny$\blacksquare$}] \textbf{JSON Schema Extraction}: Regex-based fallback parser extracts structured array formats from the LLM outputs and maps them into hierarchical parent-child nodes.
+  \end{itemize}

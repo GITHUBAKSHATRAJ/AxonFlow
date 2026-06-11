@@ -27,69 +27,53 @@ import { useDragReparent } from './hooks/useDragReparent';
 const edgeTypes = { d3Bezier: D3BezierEdge };
 
 /**
- * HOW THIS WORKS: Canvas Architecture
+ * [CHILD / NAMED COMPONENT]
+ * MindMapInner is a Named Function component containing React Flow canvas handlers.
  * 
- * This is the central hub for the mind mapping experience. It follows a modular, 
- * hook-based architecture to keep the UI separate from complex business logic.
- * 
- * 1. State Management (useCanvasState):
- *    - Maintains 'backendNodes' (the source of truth from MongoDB).
- *    - Automatically runs the D3 layout engine whenever nodes or settings change.
- *    - Syncs the calculated positions into the React Flow 'nodes' and 'edges' state.
- * 
- * 2. Event Handling (useCanvasEvents):
- *    - Manages user interactions (clicks, hovers, shortcuts like Tab/Enter).
- *    - Handles global window events like 'paste' for bulk node creation.
- * 
- * 3. Business Actions (useCanvasActions):
- *    - Contains the actual logic for creating, deleting, and updating nodes.
- *    - Manages side-panels (Notes, Links, AI).
- * 
- * 4. Drag-Reparent (useDragReparent):
- *    - Special logic to handle 'dropping' one node onto another to change its parent.
+ * Concept: It binds custom Hooks together, manages local layout flags, 
+ * and feeds variables to React Flow renderers.
  */
-const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternalImport }) => {
-    // 1. Data & Layout State
-
-    // step 1 : CanvasContainer receives the raw data (initialNodes).
-    // step 2 : It passes this data to the useCanvasState hook.
-    // step 3 : useCanvasState calls D3LayoutEngine.
-    // step 4 : D3LayoutEngine calculates the (x, y) positions. for every single node so that they fan out beautifully in a mind map shape.
-    // step 5 : useCanvasState returns the fully calculated nodes and edges
-    // step 6 : Finally, down on line 232, those calculated nodes and edges are passed directly into <ReactFlow> to be drawn on your screen:
+function MindMapInner({ mapId, initialNodes, externalImportOpen, onCloseExternalImport }) {
+    // [STATE HOOK: useCanvasState]
+    // Fetches reactive structures, calculates D3 trees layouts, and maps positions.
     const {
-        backendNodes, // MongoDb nodes
+        backendNodes, 
         setBackendNodes,
-        nodes,  // React Flow nodes
+        nodes,  
         onNodesChange,
-        edges, // <--- These are the connecting lines!
+        edges, 
         setEdges,
         onEdgesChange,
         layoutMode,
         setLayoutMode,
         colorPalette,
         setColorPalette
-    } = useCanvasState(mapId, initialNodes); // custom hook
+    } = useCanvasState(mapId, initialNodes);
 
-    // Stable ref for backend nodes (used by recursive actions)
+    // [REACT HOOK: useRef (Reference Persistence)]
+    // Holds a persistent reference to backend nodes. This reference does not cause
+    // re-renders when updated, providing a thread-safe way for hooks to read fresh arrays.
     const backendNodesRef = useRef(backendNodes);
-    useEffect(() => { backendNodesRef.current = backendNodes; }, [backendNodes]);
+    useEffect(function () { 
+        backendNodesRef.current = backendNodes; 
+    }, [backendNodes]);
 
-    // 2. UI State
+    // [LOCAL STATE HOOKS]
     const [focusedNodeId, setFocusedNodeId] = useState(null);
     const [hoveredNodeId, setHoveredNodeId] = useState(null);
     const [selectedNode, setSelectedNode] = useState(null);
     const [menuConfig, setMenuConfig] = useState(null);
     const [showPaletteMenu, setShowPaletteMenu] = useState(false);
     
-    // Panel States
+    // Panel visibility flags
     const [notesOpen, setNotesOpen] = useState(false);
     const [linksOpen, setLinksOpen] = useState(false);
     const [filesOpen, setFilesOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
 
-    // 3. Business Actions
+    // [CUSTOM STATE HOOK: useCanvasActions]
+    // Connects canvas mutations to API endpoints and state-hooks updates.
     const {
         openNodeInput,
         handleDeleteNode,
@@ -111,7 +95,8 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         setAiOpen
     });
 
-    // 4. Drag-Reparent Logic
+    // [CUSTOM STATE HOOK: useDragReparent]
+    // Intercepts node drag/drop actions to change node parenting.
     const { dropTargetId, onNodeDrag, onNodeDragStop } = useDragReparent({
         mapId,
         backendNodes,
@@ -119,47 +104,37 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         rfNodes: nodes
     });
 
-    // 5. Build Toolbar Actions
-    const buildActions = useCallback((rfNode) => ({
-        rename: () => openNodeInput('rename', rfNode),
-        addChild: () => openNodeInput('child', rfNode),
-        deleteNode: () => handleDeleteNode(rfNode.id, rfNode.data.name),
-        copy: () => handleCopy(rfNode),
-        paste: () => handlePaste(rfNode.id),
-        import: () => {
-            setFocusedNodeId(rfNode.id); // Ensure this node is the target
-            setImportOpen(true);
-        },
-        openNotes: () => openNotes(rfNode),
-        openLinks: () => openLinks(rfNode),
-        openFiles: () => openFiles(rfNode),
-        openAI: () => openAI(rfNode),
-    }), [openNodeInput, handleDeleteNode, handleCopy, handlePaste, openNotes, openLinks, openFiles, openAI]);
+    // [REACT HOOK: useCallback]
+    // Caches action list generation to prevent rebuilding context handlers on every draw.
+    const buildActions = useCallback(function (rfNode) {
+        return {
+            rename: () => openNodeInput('rename', rfNode),
+            addChild: () => openNodeInput('child', rfNode),
+            deleteNode: () => handleDeleteNode(rfNode.id, rfNode.data.name),
+            copy: () => handleCopy(rfNode),
+            paste: () => handlePaste(rfNode.id),
+            import: () => {
+                setFocusedNodeId(rfNode.id);
+                setImportOpen(true);
+            },
+            openNotes: () => openNotes(rfNode),
+            openLinks: () => openLinks(rfNode),
+            openFiles: () => openFiles(rfNode),
+            openAI: () => openAI(rfNode),
+        };
+    }, [openNodeInput, handleDeleteNode, handleCopy, handlePaste, openNotes, openLinks, openFiles, openAI]);
 
-    // ── Bulk Import Logic ──
-    const handleBulkImport = useCallback(async (parsedNodes) => {
-        // If no root is selected, we'll attach to the actual root of the map
+    // [REACT HOOK: useCallback]
+    // Processes dynamic text parsing and calls bulk database insertion.
+    const handleBulkImport = useCallback(async function (parsedNodes) {
         const targetParentId = focusedNodeId || backendNodes.find(n => !n.parentId)?.id;
         if (!targetParentId) {
             alert('Please select a parent node or create a root first.');
             return;
         }
 
-        const nodesToCreate = parsedNodes.map(({ tempId, parentTempId, ...rest }) => ({
-            ...rest,
-            mapId,
-            // If it has a parentTempId, find the new real ID of that parent in our list
-            // But wait, insertMany returns new nodes with real IDs.
-            // We need to preserve hierarchy.
-        }));
-
-        // Actually, let's keep it simple: 
-        // 1. Generate real ObjectIds on frontend for all new nodes
-        // 2. Map temp hierarchy to real IDs
-        // 3. Insert all at once.
-
         const generateObjectId = () => [...Array(24)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-        const idMap = { null: targetParentId }; // Map null (top level of import) to the selected parent
+        const idMap = { null: targetParentId };
         
         parsedNodes.forEach(n => {
             idMap[n.tempId] = generateObjectId();
@@ -187,7 +162,8 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         }
     }, [mapId, focusedNodeId, backendNodes, setBackendNodes]);
 
-    // 6. Interaction Events
+    // [CUSTOM STATE HOOK: useCanvasEvents]
+    // Manages click/keyboard shortcuts (Enter, Tab) within the viewport.
     const {
         onHover,
         onHoverEnd,
@@ -211,7 +187,8 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         EDGE_DEFAULT: '#555'
     });
 
-    const onNodeContextMenu = useCallback((event, rfNode) => {
+    // Handle context menu clicks to position the options menu
+    const onNodeContextMenu = useCallback(function (event, rfNode) {
         event.preventDefault();
         setFocusedNodeId(rfNode.id);
         setMenuConfig({ 
@@ -221,21 +198,22 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
         });
     }, [buildActions]);
 
-    // 7. Final Node Enrichment for Rendering
-    const styledNodes = useMemo(() => nodes.map(n => ({
-        ...n,
-        selected: n.id === focusedNodeId,
-        data: {
-            ...n.data,
-            isHovered: n.id === hoveredNodeId,
-            isDropTarget: n.id === dropTargetId,
-            onHover,
-            onHoverEnd
-        }
-    })), [nodes, focusedNodeId, hoveredNodeId, dropTargetId, onHover, onHoverEnd]);
-
-
-
+    // [REACT HOOK: useMemo (Performance Optimization)]
+    // Enriches nodes with hover and drop target data only when node lists change,
+    // avoiding heavy object creation cycles during canvas panning.
+    const styledNodes = useMemo(function () {
+        return nodes.map(n => ({
+            ...n,
+            selected: n.id === focusedNodeId,
+            data: {
+                ...n.data,
+                isHovered: n.id === hoveredNodeId,
+                isDropTarget: n.id === dropTargetId,
+                onHover,
+                onHoverEnd
+            }
+        }));
+    }, [nodes, focusedNodeId, hoveredNodeId, dropTargetId, onHover, onHoverEnd]);
 
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative', background: '#121212' }}>
@@ -296,8 +274,6 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
                     </Panel>
                 )}
             </ReactFlow>
-
-            {/* TODO: Integrate Notes, Links, Files, and AI Panels here */}
             
             {(importOpen || externalImportOpen) && (
                 <BulkImportModal 
@@ -310,16 +286,23 @@ const MindMapInner = ({ mapId, initialNodes, externalImportOpen, onCloseExternal
             )}
         </div>
     );
-};
+}
 
-
-
-const CanvasContainer = (props) => (
-    <ErrorBoundary>
-        <ReactFlowProvider>
-            <MindMapInner {...props} />
-        </ReactFlowProvider>
-    </ErrorBoundary>
-);
+/**
+ * [CONTAINER COMPONENT]
+ * CanvasContainer wraps ReactFlow elements inside boundary contexts.
+ * 
+ * Concept: Utilizes '<ReactFlowProvider>' to establish coordinates contexts, 
+ * and '<ErrorBoundary>' to prevent total app crashes on canvas errors.
+ */
+function CanvasContainer(props) {
+    return (
+        <ErrorBoundary>
+            <ReactFlowProvider>
+                <MindMapInner {...props} />
+            </ReactFlowProvider>
+        </ErrorBoundary>
+    );
+}
 
 export default CanvasContainer;

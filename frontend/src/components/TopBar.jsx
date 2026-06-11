@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
     ChevronLeft, 
     Share2, 
-    MoreHorizontal, 
-    Layout, 
     History, 
     Settings,
     Edit3,
@@ -14,32 +12,45 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/authContext';
 
-const TopBar = ({ 
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * TopBar is a Named Function component that renders the editor's upper workspace utility bar.
+ * 
+ * Concept: This component uses Props destructuring to receive the current map title,
+ * save status triggers, and import callbacks. It delegates input events back to the parent container.
+ */
+function TopBar({ 
     mapName, 
     onUpdateMapName,
     isSaving = false,
     onBulkImport
-}) => {
+}) {
     const navigate = useNavigate();
     const { user } = useAuth();
+    
+    // [LOCAL STATE HOOKS]
+    // Tracks active editing mode toggle and temporary inputs before confirming save.
     const [isEditing, setIsEditing] = useState(false);
     const [tempName, setTempName] = useState(mapName);
 
-    useEffect(() => {
+    // [REACT HOOK: useEffect]
+    // Syncs the internal textbox local state whenever the parent updates the dynamic 'mapName' value.
+    useEffect(function () {
         setTempName(mapName);
     }, [mapName]);
 
-    const handleSave = () => {
+    // [NAMED FUNCTION] - Validate and trigger rename actions
+    function handleSave() {
         if (tempName.trim() && tempName !== mapName) {
             onUpdateMapName(tempName.trim());
         }
         setIsEditing(false);
-    };
+    }
 
     return (
         <header className="h-[60px] bg-bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-[1000]">
             <div className="flex items-center gap-6">
-                {/* Back Button */}
+                {/* Back Link CTA */}
                 <button 
                     onClick={() => navigate('/')}
                     className="p-2 hover:bg-bg-card-hover rounded-lg text-text-muted hover:text-text-h transition-all group"
@@ -49,7 +60,10 @@ const TopBar = ({
 
                 <div className="h-6 w-px bg-gray-800" />
 
-                {/* Map Title Section */}
+                {/* 
+                  [CONDITIONAL ELEMENT RENDERING]
+                  If 'isEditing' is active, renders an input box. Otherwise, renders the plain title.
+                */}
                 <div className="flex items-center gap-3">
                     {isEditing ? (
                         <div className="flex items-center gap-2">
@@ -83,7 +97,7 @@ const TopBar = ({
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Action Buttons */}
+                {/* Action Buttons Panel */}
                 <div className="flex items-center bg-bg-card-hover rounded-xl p-1 border border-white/5">
                     <button className="px-3 py-1.5 text-xs font-bold text-text-muted hover:text-text-h transition-colors flex items-center gap-2">
                         <History size={14} /> History
@@ -93,6 +107,7 @@ const TopBar = ({
                     </button>
                 </div>
 
+                {/* Bulk Import trigger */}
                 <button 
                     onClick={onBulkImport}
                     className="p-2 hover:bg-bg-card-hover rounded-xl text-text-muted hover:text-text-h transition-all flex items-center gap-2 group border border-white/5"
@@ -114,6 +129,6 @@ const TopBar = ({
             </div>
         </header>
     );
-};
+}
 
 export default TopBar;

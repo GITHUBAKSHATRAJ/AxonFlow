@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  BrainCircuit, LayoutDashboard, FolderOpen, LayoutTemplate, Settings,
+  BrainCircuit, LayoutDashboard, FolderOpen,
   LogOut, User as UserIcon, Plus, Star, Folder, Users, Trash2,
-  ChevronDown, ChevronRight, MoreVertical, Edit2, Sun, Moon
+  ChevronDown, ChevronRight, Moon, Sun
 } from 'lucide-react';
 import { useAuth } from '../context/authContext';
 import * as folderApi from '../services/api/folderApi';
 import * as mapApi from '../services/api/mapApi';
 
-const WorkspaceFolderItem = ({ folder, level = 0, workspaceName }) => {
+/**
+ * [RECURSIVE NAMED COMPONENT]
+ * WorkspaceFolderItem represents folder directories.
+ * 
+ * Concept: This component is "Recursive" because it can render copies of itself
+ * to draw nested folders inside folders at increasing levels of indentation.
+ */
+function WorkspaceFolderItem({ folder, level = 0, workspaceName }) {
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState([]);
   const navigate = useNavigate();
 
-  const handleToggle = (e) => {
+  // [NAMED FUNCTION] - Toggle directory expansion
+  function handleToggle(e) {
+    // Intercept event propagation to prevent clicking the folder toggle 
+    // from triggering navigation to the workspace main page.
     e.stopPropagation();
     e.preventDefault();
     if (!isOpen) {
@@ -23,7 +33,7 @@ const WorkspaceFolderItem = ({ folder, level = 0, workspaceName }) => {
         .catch(console.error);
     }
     setIsOpen(!isOpen);
-  };
+  }
 
   return (
     <div className="flex flex-col">
@@ -41,6 +51,11 @@ const WorkspaceFolderItem = ({ folder, level = 0, workspaceName }) => {
         </div>
       </div>
 
+      {/* 
+        [RECURSIVE LIST RENDERING]
+        If the folder is expanded (isOpen is true) and holds items, it recursively maps 
+        each subfolder child as another '<WorkspaceFolderItem />'.
+      */}
       {isOpen && children.length > 0 && (
         <div className="flex flex-col gap-0.5">
           {children.map(child => (
@@ -55,12 +70,16 @@ const WorkspaceFolderItem = ({ folder, level = 0, workspaceName }) => {
       )}
     </div>
   );
-};
+}
 
-const WorkspaceSubFolders = ({ workspaceName }) => {
+/**
+ * [NAMED COMPONENT] - Helper rendering subfolders list
+ */
+function WorkspaceSubFolders({ workspaceName }) {
   const [folders, setFolders] = useState([]);
 
-  useEffect(() => {
+  // Fetch folders on mount or whenever the workspaceName changes
+  useEffect(function () {
     folderApi.fetchFolders(workspaceName, null)
       .then(data => {
         if (data) setFolders(data.filter(f => f.name !== '.workspace'));
@@ -81,9 +100,13 @@ const WorkspaceSubFolders = ({ workspaceName }) => {
       ))}
     </div>
   );
-};
+}
 
-const GlobalSidebar = () => {
+/**
+ * [CONTAINER / NAMED COMPONENT]
+ * GlobalSidebar renders the persistent left navigation bar overlay.
+ */
+function GlobalSidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -92,31 +115,37 @@ const GlobalSidebar = () => {
   const [openWorkspaces, setOpenWorkspaces] = useState({});
   const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('app-theme') || 'dark');
 
-  useEffect(() => {
+  // [THEME SIDE-EFFECT]
+  // Applies the theme settings directly to the document root element.
+  useEffect(function () {
     document.documentElement.setAttribute('data-theme', activeTheme);
     localStorage.setItem('app-theme', activeTheme);
   }, [activeTheme]);
 
-  const toggleTheme = () => {
+  // [NAMED FUNCTION] - Cycle active UI styling color palettes
+  function toggleTheme() {
     const next = activeTheme === 'dark' ? 'light' : activeTheme === 'light' ? 'neon' : 'dark';
     setActiveTheme(next);
-  };
+  }
 
-  useEffect(() => {
+  // Fetch all user workspaces on page mount
+  useEffect(function () {
     folderApi.fetchWorkspaces().then(data => {
       if (data) setWorkspaces(data);
     }).catch(console.error);
   }, []);
 
-  const handleQuickCreate = async () => {
+  // [NAMED FUNCTION] - Quickly create a blank standalone map
+  async function handleQuickCreate() {
     try {
       const res = await mapApi.createMap('New Idea Map');
       navigate(`/map/${res.id}`);
     } catch (err) {
       console.error('Quick create failed:', err);
     }
-  };
+  }
 
+  // Navigation route metadata list
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'My Maps', path: '/maps', icon: FolderOpen },
@@ -136,7 +165,7 @@ const GlobalSidebar = () => {
         <span className="text-lg font-bold tracking-tight">AxonFlow</span>
       </div>
 
-      {/* Quick Action */}
+      {/* Quick Action Button */}
       <div className="p-5 pb-2 shrink-0">
         <button
           onClick={handleQuickCreate}
@@ -146,7 +175,7 @@ const GlobalSidebar = () => {
         </button>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation List */}
       <nav className="flex-1 p-4 overflow-y-auto flex flex-col gap-6">
         <div>
           <div className="text-[11px] text-text-muted font-bold px-2 mb-2 uppercase tracking-widest">Workspace</div>
@@ -174,6 +203,7 @@ const GlobalSidebar = () => {
                   )}
                 </NavLink>
                 
+                {/* Render Accordion for Workspace folders */}
                 {item.isAccordion && foldersOpen && (
                   <div className="pl-4 mt-2 flex flex-col gap-1 border-l border-gray-800 ml-6">
                     {workspaces.map(w => (
@@ -201,7 +231,7 @@ const GlobalSidebar = () => {
         </div>
       </nav>
 
-      {/* User Footer */}
+      {/* User Footer Panel */}
       <div className="p-4 border-t border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3 truncate">
           {user?.avatar ? (
@@ -220,7 +250,7 @@ const GlobalSidebar = () => {
           <button 
             onClick={toggleTheme}
             className="p-2 text-text-muted hover:text-text-h transition-colors"
-            title={`Switch to ${activeTheme === 'dark' ? 'Light' : activeTheme === 'light' ? 'Neon' : 'Dark'} mode`}
+            title={`Switch to theme`}
           >
             {activeTheme === 'dark' ? <Moon size={16} /> : activeTheme === 'light' ? <Sun size={16} /> : <Sun size={16} className="text-[#00ff9f]" />}
           </button>
@@ -231,6 +261,6 @@ const GlobalSidebar = () => {
       </div>
     </aside>
   );
-};
+}
 
 export default GlobalSidebar;

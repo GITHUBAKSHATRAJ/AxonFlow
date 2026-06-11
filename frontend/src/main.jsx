@@ -6,7 +6,17 @@ import { AuthProvider } from './context/authContext';
 import './index.css';
 import App from './App.jsx';
 
-createRoot(document.getElementById('root')).render(
+/**
+ * React Application Entry Point (Bootstrap file)
+ * 
+ * Concepts Used:
+ * 1. createRoot: React 18 API that creates a root container for the root element of our application.
+ * 2. StrictMode: Development-only tool that highlights potential problems in the application.
+ * 3. AuthProvider: Context Provider to handle global user authentication state.
+ * 4. BrowserRouter: Router wrapper allowing URL path matching to render sub-components.
+ * 5. index.css: Global styles (e.g. Tailwind imports) loaded at the root level.
+ */
+createRoot(document.getElementById('root')).render(  // App starts form here 
     <StrictMode>
         <AuthProvider>
             <BrowserRouter>
@@ -15,3 +25,4 @@ createRoot(document.getElementById('root')).render(
         </AuthProvider>
     </StrictMode>
 );
+

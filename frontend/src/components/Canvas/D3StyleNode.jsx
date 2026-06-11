@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { CheckCircle2, Clock, AlertCircle, RefreshCcw, BookOpen } from 'lucide-react';
 
+// Static status tags metadata mapping 
 const STATUS_MAP = {
   reading: { icon: BookOpen, color: '#38bdf8' },
   completed: { icon: CheckCircle2, color: '#4ade80' },
@@ -15,7 +16,11 @@ const DOT_GAP = 15;  // circle -> text gap
 const TEXT_GAP = 15;  // text end -> edge start gap
 const FONT_SIZE = 14;  // px
 
-/** Estimate text width using a canvas 2D context */
+/** 
+ * [NAMED FUNCTION] - Measure text length dynamically
+ * Concept: Instantiates a temporary HTML5 Canvas 2D context to measure string 
+ * width in pixels, returning estimates on canvas failure.
+ */
 function measureText(text, fontSize = FONT_SIZE) {
   try {
     const canvas = document.createElement('canvas');
@@ -27,9 +32,17 @@ function measureText(text, fontSize = FONT_SIZE) {
   }
 }
 
-const D3StyleNode = ({ data, selected }) => {
+/**
+ * [CHILD COMPONENT / CUSTOM NODE RENDERER]
+ * D3StyleNode is a Named Function component that displays individual nodes.
+ * 
+ * Concept: This is a custom node layout. It handles inline node renaming inputs 
+ * and binds handles (ports) for edge routing targets.
+ */
+function D3StyleNode({ data, selected }) {
   const [hovered, setHovered] = useState(false);
   const inputRef = useRef(null);
+  
   const isRoot = data.depth === 0;
   const hasChildren = data.hasChildren;
   const isEditing = data._isDraft || data._isEditing;
@@ -37,7 +50,9 @@ const D3StyleNode = ({ data, selected }) => {
   const notesFlag = data.notes?.length > 0 ? ' 📝' : '';
   const displayText = isEditing ? (label || 'Type name...') : (label + notesFlag);
 
-  useEffect(() => {
+  // [REACT HOOK: useEffect]
+  // Auto-focuses the rename input box and positions the cursor at the end when editing starts.
+  useEffect(function () {
     if (isEditing && inputRef.current) {
       setTimeout(() => {
         if (inputRef.current) {
@@ -171,6 +186,11 @@ const D3StyleNode = ({ data, selected }) => {
         }}
       />
 
+      {/* 
+        [UNCONTROLLED TEXT INPUT]
+        Uses 'defaultValue' instead of a controlled value state hook to prevent laggy renders 
+        as the user types long strings on large maps.
+      */}
       {isEditing ? (
         <input
           ref={inputRef}
@@ -222,6 +242,7 @@ const D3StyleNode = ({ data, selected }) => {
         </span>
       )}
 
+      {/* Handles (Ports) defining attachment anchors for connection lines */}
       <Handle
         type="target"
         position={data.layoutMode === 'vertical' ? Position.Top : Position.Left}
@@ -251,6 +272,6 @@ const D3StyleNode = ({ data, selected }) => {
       />
     </div>
   );
-};
+}
 
 export default D3StyleNode;

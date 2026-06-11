@@ -15,10 +15,14 @@ function isDescendantOf(candidateId, nodeId, nodes) {
 }
 
 /**
- * useDragReparent hook
- * Handles the "Drag-to-Reparent" logic for the React Flow mind-map.
+ * [CUSTOM HOOK - useDragReparent]
+ * Concept: Handles the "Drag-to-Reparent" logic for the React Flow mind-map nodes.
+ * 
+ * Named Function rule applies here: The main custom hook function is declared as a named function, 
+ * while small utility/callback handlers inside are defined via Arrow Functions wrapped in useCallback 
+ * to preserve referential identity across renders.
  */
-export const useDragReparent = ({ mapId, backendNodes, setBackendNodes, rfNodes }) => {
+export function useDragReparent({ mapId, backendNodes, setBackendNodes, rfNodes }) {
     const [dropTargetId, setDropTargetId] = useState(null);
 
     const backendRef = useRef(backendNodes);
@@ -119,4 +123,4 @@ export const useDragReparent = ({ mapId, backendNodes, setBackendNodes, rfNodes 
     }, [dropTargetId, mapId, setBackendNodes]);
 
     return { dropTargetId, onNodeDrag, onNodeDragStop };
-};
+}

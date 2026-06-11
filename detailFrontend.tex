@@ -1,0 +1,711 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper, top=1in, bottom=1in, left=1.1in, right=1.1in]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.2}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+
+% Colors
+\definecolor{axonpurple}{RGB}{108,99,255}
+\definecolor{axondark}{RGB}{18,18,18}
+\definecolor{axongold}{RGB}{198,138,0}
+\definecolor{codegreen}{RGB}{40,160,40}
+\definecolor{codegray}{RGB}{120,120,120}
+
+% Listing setup
+\lstdefinelanguage{javascript}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break, const, let},
+  keywordstyle=\color{axonpurple}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{axonpurple}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codegreen},
+  stringstyle=\color{axongold},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstdefinelanguage{json}{
+  keywords={true, false, null},
+  keywordstyle=\color{axonpurple}\bfseries,
+  string=[s]{"}{"},
+  stringstyle=\color{axongold},
+  comment=[l]{:},
+  commentstyle=\color{black}
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{black!5},
+  keywordstyle=\color{axonpurple}\bfseries,
+  commentstyle=\color{codegreen},
+  stringstyle=\color{axongold},
+  frame=single, rulecolor=\color{black!20},
+  breaklines=true, numbers=left,
+  numberstyle=\tiny\color{codegray},
+  tabsize=2, showstringspaces=false
+}
+
+\newtcolorbox{codebox}[1][]{
+  enhanced, breakable, colback=black!4, colframe=black!20,
+  title=#1, fonttitle=\bfseries\small\ttfamily,
+  left=6pt, right=6pt, top=4pt, bottom=4pt
+}
+
+\title{\textbf{\color{axonpurple} Axon Flow: Detailed Frontend Data Pipeline}}
+\author{Data Flow Documentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+This document outlines the detailed step-by-step data pipeline for the Axon Flow frontend, tracking the flow of data at every micro-step from the MongoDB database, through the React frontend, and finally to the visual Editor screen, complete with exact Input, Output, and code examples.
+
+\section{Step 1: Opening a Map (Flat DB to Canvas)}
+
+\subsection{1.1 The Initial API Fetch (\texttt{Editor.jsx})}
+When the \texttt{Editor.jsx} component mounts, it extracts the map ID from the URL and requests the map's nodes from the backend.
+
+\textbf{Input:}
+\begin{lstlisting}[language=json]
+{
+  "mapId": "MAP_001"
+}
+\end{lstlisting}
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={Editor.jsx}]
+nodeApi.fetchMapNodes(id)
+    .then(data => {
+        setBackendNodes(data); // Holds the flattened array of all nodes
+        const root = data.find(n => !n.parentId);
+        setMapName(root ? root.name : 'Untitled Map');
+        setIsLoading(false);
+    })
+\end{lstlisting}
+
+\textbf{Output (from DB):} A flat JSON array of node documents.
+\begin{lstlisting}[language=json, caption={Flat Node Array Output}]
+[
+  { 
+    "_id": "NODE_101", 
+    "mapId": "MAP_001", 
+    "parentId": null, 
+    "name": "Root Node", 
+    "isExpanded": true 
+  },
+  { 
+    "_id": "NODE_102", 
+    "mapId": "MAP_001", 
+    "parentId": "NODE_101", 
+    "name": "Child A", 
+    "isExpanded": true 
+  }
+]
+\end{lstlisting}
+
+\subsection{1.2 Passing Data to the Canvas (\texttt{Editor.jsx $\rightarrow$ CanvasContainer.jsx})}
+The \texttt{Editor.jsx} takes the flat array and passes it down to the \texttt{CanvasContainer} as \texttt{initialNodes}.
+
+\textbf{Input:}
+The exact flat array outputted from 1.1.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={Editor.jsx}]
+<CanvasContainer 
+    mapId={id} 
+    initialNodes={backendNodes} // Array of all nodes passed here
+/>
+\end{lstlisting}
+
+\textbf{Output:} 
+The \texttt{CanvasContainer} successfully receives the flat array and immediately hands it off to the \texttt{useCanvasState} hook.
+
+\subsection{1.3 Pruning Collapsed Nodes (\texttt{useCanvasState.js})}
+Inside \texttt{useCanvasState.js}, a \texttt{useEffect} monitors the nodes. Before running the layout engine, it filters out nodes that shouldn't be rendered because their parents are collapsed.
+
+\textbf{Input:}
+The flat array of nodes.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasState.js}]
+const visibleNodes = filterExpandedNodes(backendNodes);
+\end{lstlisting}
+
+\textbf{Output:}
+A filtered flat array. If \texttt{NODE_101} had \texttt{isExpanded: false}, \texttt{NODE_102} would be removed from this array.
+
+\subsection{1.4 Running the D3 Layout Engine (\texttt{flowUtils.js})}
+The visible nodes are passed to \texttt{buildReactFlowData()} to calculate their visual coordinates (x, y) using D3 hierarchy.
+
+\textbf{Input (Flat Array):}
+\begin{lstlisting}[language=json]
+[
+  { "id": "NODE_1", "parentId": null, "name": "Root" },
+  { "id": "NODE_2", "parentId": "NODE_1", "name": "Child A" },
+  { "id": "NODE_3", "parentId": "NODE_1", "name": "Child B" }
+]
+\end{lstlisting}
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={flowUtils.js - D3 Stratify}]
+// d3.stratify converts flat array into a deeply nested tree
+const root = stratify()
+  .id(d => d.id)
+  .parentId(d => d.parentId)(backendNodes);
+
+// d3.tree assigns abstract layout coordinates
+const layout = tree().nodeSize([1, 1]);
+layout(root);
+\end{lstlisting}
+
+\textbf{Object Creation Note:}
+Note that \texttt{d3.stratify()} creates exactly $N$ new \texttt{d3.hierarchy} node objects in memory, where $N$ is the number of elements in the \texttt{backendNodes} array. These $N$ separate objects are linked together via parent and child pointers to form one single deeply nested tree structure. The \texttt{layout(root)} function does not create new objects; it simply traverses and mutates these exact same $N$ objects in-place to append \texttt{x} and \texttt{y} coordinates.
+
+\textbf{Conceptual Memory Map:}
+\begin{codebox}[Memory Representation]
+\begin{verbatim}
+Memory Address: 0x1A4 (Root Object)
+{
+  id: "NODE_1",
+  children: [ <Reference to 0x1B5>, <Reference to 0x1C6> ]
+}
+
+Memory Address: 0x1B5 (Child A Object)
+{
+  id: "NODE_2",
+  parent: <Reference to 0x1A4>
+}
+
+Memory Address: 0x1C6 (Child B Object)
+{
+  id: "NODE_3",
+  parent: <Reference to 0x1A4>
+}
+\end{verbatim}
+\end{codebox}
+
+\textbf{The Root Variable \& Data Structure Reality:}
+The \texttt{const root} variable is simply a reference that holds the memory address to the top-level node object (e.g., \texttt{0x1A4}). 
+
+It forms a classic \textbf{N-ary Tree} data structure built using memory references:
+\begin{itemize}
+    \item From \texttt{root}, you access \texttt{root.children}, which is an array of memory references pointing down to the child objects.
+    \item Because those child objects also have a \texttt{parent} property, they hold a memory reference pointing back up to the \texttt{root}.
+\end{itemize}
+
+When D3 functions like \texttt{layout(root)} run, they take that single \texttt{root} reference and use a standard tree traversal algorithm (like Depth-First Search) to walk through the entire tree by following those \texttt{children} references.
+
+\begin{codebox}[Tree Data Structure Visualization]
+\begin{verbatim}
+           [Root Object @ 0x1A4]
+           /                   \
+    children[0]            children[1]
+        /                        \
+       V                          V
+[Child A @ 0x1B5]          [Child B @ 0x1C6]
+       |                          |
+   parent ref                 parent ref
+       |                          |
+       +------(points back)-------+-----> [@ 0x1A4]
+\end{verbatim}
+\end{codebox}
+
+\vspace{1em}
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Architecture FAQ: Custom Class vs d3.stratify]
+\textbf{Q: Suppose I directly apply an N-ary tree using a custom class instead of \texttt{d3.stratify()}. Will that be easier or harder? And what about pushing the data from the backend?}
+
+\begin{lstlisting}[language=javascript, caption={Custom TreeNode Approach}]
+class TreeNode {
+    constructor(value) {
+        this.value = value;
+        this.children = []; // Array stores references to child nodes
+    }
+    // Helper method to easily attach a child node
+    addChild(node) {
+        this.children.push(node);
+    }
+}
+\end{lstlisting}
+
+\textbf{Answer:}
+Building your own \texttt{TreeNode} class and bypassing \texttt{d3.stratify()} is \textbf{much harder} and usually not recommended for a visual canvas app. Here is a breakdown of why:
+
+\begin{itemize}
+    \item \textbf{1. Pushing Data from the Backend (Database)} \\
+    Storing a \textbf{flat array} (where each node just has an \texttt{id} and a \texttt{parentId}) in a database like MongoDB or SQL is the industry standard and by far the \textbf{easiest} approach.
+    \begin{itemize}
+        \item \textbf{Why it's easy:} If you need to rename, delete, or move a node to a different parent, you only update one single flat record in your database.
+        \item \textbf{If you tried to store a deeply nested tree:} Updating a child that is 15 levels deep in a single MongoDB document becomes a nightmare of complex queries, and document size limits can become an issue.
+    \end{itemize}
+    Therefore, your backend \emph{should} definitely send a flat array to the frontend.
+
+    \item \textbf{2. Manual Custom Tree vs d3.stratify()} \\
+    If your backend sends a flat array, you have two choices on the frontend to turn it into a tree:
+    \begin{itemize}
+        \item \textbf{Choice A: Manually using your \texttt{TreeNode} class (Hard)} \\
+        If you use your custom class, you have to write the algorithm to link everything together. You would need to loop over the flat array, find each node's parent in memory, instantiate your \texttt{TreeNode} class, and push it to \texttt{parent.children}. \\
+        But here is the biggest problem: \textbf{D3's layout engine won't understand your custom class.} \\
+        If you want to draw the mind map on the screen, calculating the exact \texttt{X} and \texttt{Y} coordinates so that nodes don't overlap is very complex math. D3 does this automatically using \texttt{d3.tree()}, but \texttt{d3.tree()} \textbf{only} works on objects generated by \texttt{d3.stratify()} (or \texttt{d3.hierarchy()}). It needs built-in D3 properties like \texttt{.depth}, \texttt{.height}, and internal traversal methods that your custom class doesn't have.
+
+        \item \textbf{Choice B: Using \texttt{d3.stratify()} (Easy)} \\
+        \texttt{d3.stratify()} is literally just a highly optimized, pre-written version of your \texttt{TreeNode} logic. It takes your flat array, creates all the objects, links the \texttt{children} arrays, and links the \texttt{parent} references for you in two lines of code. \\
+        More importantly, the object it spits out is formatted exactly the way \texttt{d3.tree()} needs it. You can instantly pass the output into \texttt{layout(root)} and get perfect \texttt{x} and \texttt{y} coordinates for your canvas.
+    \end{itemize}
+
+    \item \textbf{Summary}
+    \begin{itemize}
+        \item \textbf{Backend:} Keep it as a flat array. It's the best way to store relational data.
+        \item \textbf{Frontend:} Don't write your own \texttt{TreeNode} linking logic. Let \texttt{d3.stratify()} act as your custom class builder so that you can instantly hook it into D3's powerful visual coordinate calculators!
+    \end{itemize}
+\end{itemize}
+\end{tcolorbox}
+\vspace{1em}
+
+
+\textbf{Intermediate Output (D3 Hierarchy Tree):}
+After \texttt{stratify()}, the data becomes a deeply nested object with hierarchy metadata (\texttt{depth}, \texttt{height}, \texttt{parent}, \texttt{children}, and original \texttt{data}):
+\begin{lstlisting}[language=json, caption={Nested D3 Hierarchy Output}]
+{
+  "id": "NODE_1",
+  "depth": 0,
+  "height": 1,
+  "data": { "id": "NODE_1", "parentId": null, "name": "Root" },
+  "parent": null,
+  "children": [
+    {
+      "id": "NODE_2",
+      "depth": 1,
+      "height": 0,
+      "data": { "id": "NODE_2", "parentId": "NODE_1", "name": "Child A" },
+      "parent": "<CircularRef to NODE_1>",
+      "children": null
+    },
+    {
+      "id": "NODE_3",
+      "depth": 1,
+      "height": 0,
+      "data": { "id": "NODE_3", "parentId": "NODE_1", "name": "Child B" },
+      "parent": "<CircularRef to NODE_1>",
+      "children": null
+    }
+  ]
+}
+\end{lstlisting}
+
+\textbf{Visual Structure Concept:}
+This deeply nested object effectively represents the mind map in memory like this:
+\begin{codebox}[Visual Tree Representation]
+\begin{verbatim}
+Root (NODE_1, depth: 0)
+  ├── Child A (NODE_2, depth: 1)
+  └── Child B (NODE_3, depth: 1)
+\end{verbatim}
+\end{codebox}
+
+\textbf{Applying the Layout (\texttt{layout(root)}):}
+When the code executes \texttt{layout(root)}, D3 mutates this deeply nested hierarchy tree \textbf{in-place}. It calculates the spatial geometry and adds abstract \texttt{x} and \texttt{y} coordinates directly to every node in the structure.
+
+\begin{lstlisting}[language=json, caption={Tree Node after layout(root)}]
+{
+  "id": "NODE_1",
+  "depth": 0,
+  "height": 1,
+  "x": 0.5,     // <-- Added by layout(root)
+  "y": 0,       // <-- Added by layout(root)
+  "data": { "id": "NODE_1", "parentId": null, "name": "Root" },
+  "parent": null,
+  "children": [
+    {
+      "id": "NODE_2",
+      "x": 0.25,  // <-- Added by layout(root)
+      "y": 1,     // <-- Added by layout(root)
+      // ... rest of child object
+    }
+  ]
+}
+\end{lstlisting}
+
+After this layout calculation, the frontend maps over this mutated tree (using \texttt{root.each()}) and calls \texttt{pushNode} to generate the final \texttt{flowNodes} and \texttt{flowEdges}:
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={flowUtils.js - Node and Edge Generation}]
+// Iterating over the mutated D3 tree
+root.each(d => {
+    const nodeH = estimateNodeHeight(d.data.name, d.depth);
+    pushNode(nodes, edges, d, { x: d.x, y: d.y }, colorMap, layoutMode);
+});
+
+// The pushNode function generates React Flow compatible objects
+function pushNode(nodes, edges, d, pos, colorMap, layoutMode) {
+    // 1. Create the React Flow Node
+    nodes.push({
+        id: d.data.id,
+        type: 'd3Node',
+        position: { x: pos.x, y: pos.y },
+        data: {
+            ...d.data,
+            depth: d.depth,
+            branchColor: colorMap[d.data.id] || '#555',
+        }
+    });
+
+    // 2. Create the Edge connecting to its parent
+    if (d.parent) {
+        edges.push({
+            id: `e-${d.parent.data.id}-${d.data.id}`,
+            source: d.parent.data.id,
+            target: d.data.id,
+            type: 'd3Bezier',
+            style: { stroke: colorMap[d.data.id] || '#555', strokeWidth: 2 },
+        });
+    }
+}
+\end{lstlisting}
+
+\textbf{Final Output:}
+Two arrays: \texttt{flowNodes} (which now have exact \texttt{x} and \texttt{y} positions) and \texttt{flowEdges} (the lines connecting them).
+
+\begin{lstlisting}[language=json, caption={flowNodes Output}]
+[
+  { 
+    "id": "NODE_1", 
+    "type": "d3Node", 
+    "position": { "x": 0, "y": 0 }, 
+    "data": { "name": "Root", "depth": 0 } 
+  },
+  { 
+    "id": "NODE_2", 
+    "type": "d3Node", 
+    "position": { "x": 250, "y": -50 }, 
+    "data": { "name": "Child A", "depth": 1 } 
+  }
+]
+\end{lstlisting}
+
+\begin{lstlisting}[language=json, caption={flowEdges Output}]
+[
+  { 
+    "id": "edge-NODE_1-NODE_2", 
+    "source": "NODE_1", 
+    "target": "NODE_2", 
+    "type": "d3Edge",
+    "animated": true
+  }
+]
+\end{lstlisting}
+
+\subsection{1.5 Node Enrichment \& Render (\texttt{useCanvasState.js})}
+Before passing the nodes to React Flow, \texttt{useCanvasState} "enriches" them. React Flow nodes are just static JSON objects by default, but we need them to be interactive. To solve this, we attach executable JavaScript functions (callbacks) directly inside the \texttt{data} property of each node.
+
+\textbf{What this means conceptually:}
+When the custom React Flow visual component (\texttt{D3StyleNode.jsx}) draws a node on the screen, it has access to \texttt{node.data}. By passing functions like \texttt{onToggle} or \texttt{onDraftConfirm} into this \texttt{data} object, we give the visual node the ability to talk back to the main state. 
+
+For example, if a user double-clicks a node bubble to rename it and hits Enter, the bubble component simply calls \texttt{node.data.onDraftConfirm(newName)}. This immediately executes the logic defined up here in \texttt{useCanvasState}, updating the database and refreshing the tree without the node component needing to know how the database works.
+
+\textbf{Example Interaction Snippet (\texttt{D3StyleNode.jsx}):}
+\begin{lstlisting}[language=javascript, caption={D3StyleNode.jsx - Consuming the Callback}]
+// Inside D3StyleNode.jsx (The visual React component)
+export default function D3StyleNode({ data }) {
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            // The visual node doesn't know about MongoDB or the backend API.
+            // It simply executes the callback function attached to its data object.
+            data.onDraftConfirm(data.id, newName, 'rename', null);
+        }
+    };
+
+    return (
+        <div onDoubleClick={openEditor} onKeyDown={handleKeyDown}>
+            {data.name}
+        </div>
+    );
+}
+\end{lstlisting}
+
+\textbf{Input:}
+\texttt{flowNodes} and \texttt{flowEdges} from 1.4.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasState.js}]
+const enriched = flowNodes.map(node => ({
+    ...node,
+    data: {
+        ...node.data,
+        hasChildren: backendNodes.some(n => n.parentId === node.id),
+        onToggle: async (id, isExpanded) => { /* logic */ },
+        onDraftConfirm: async (id, newName, mode, targetId) => { /* logic */ }
+    }
+}));
+
+setNodes(enriched);
+setEdges(flowEdges);
+\end{lstlisting}
+
+\textbf{Output (Visual Render):}
+React Flow consumes the \texttt{nodes} and \texttt{edges} state, rendering the interactive mind map on the user's screen.
+
+\section{Step 2: Interactions at the Object Level}
+
+Now that the map is visually rendered, how do we handle user interactions? This section traces exactly how a user action modifies the underlying object state and forces a visual re-render.
+
+\subsection{2.1 Triggering an Action (e.g., Adding a Child Node)}
+When a user interacts with the canvas (for instance, clicking the "+" button to add a child to \texttt{NODE\_1}), they are clicking an HTML button inside the custom \texttt{D3StyleNode.jsx} component.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={D3StyleNode.jsx - Button Click}]
+// The button simply invokes the callback provided during enrichment (Step 1.5)
+<button onClick={() => data.onDraftConfirm(data.id, 'New Node', 'addChild', null)}>
+    + Add Node
+</button>
+\end{lstlisting}
+
+\subsection{2.2 The State Mutation (\texttt{useCanvasState.js})}
+Because \texttt{onDraftConfirm} is bound to the main state hook, it triggers a function inside \texttt{useCanvasState.js}. This function does two things: talks to the backend, and updates the local flat array.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasState.js - Modifying State}]
+// 1. Send POST request to Backend
+const newDbNode = await nodeApi.createNode({
+    parentId: targetId, // "NODE_1"
+    name: 'New Node'
+});
+
+// 2. Update the flat array in memory by appending the new node
+setBackendNodes(prev => [...prev, newDbNode]);
+\end{lstlisting}
+
+\subsection{2.3 The Reactivity Loop (Re-running the Engine)}
+By updating the \texttt{backendNodes} flat array using \texttt{setBackendNodes}, we trigger React's rendering cycle. This automatically forces the layout engine from Step 1.4 to re-run entirely.
+
+\textbf{What happens in memory at the object level?}
+\begin{itemize}
+    \item \texttt{backendNodes} now contains $N+1$ flat objects (the original ones plus the new child).
+    \item \texttt{d3.stratify()} executes again, taking the $N+1$ flat array and creating $N+1$ fresh \texttt{d3.hierarchy} node objects in memory.
+    \item The memory references are instantly reconstructed for this new tree. The new node object's \texttt{parent} reference points to \texttt{NODE\_1}'s memory address, and \texttt{NODE\_1}'s \texttt{children} array now includes a memory reference to the new node.
+    \item \texttt{layout(root)} executes again, traversing the $N+1$ linked objects and mutating them to attach brand new \texttt{x} and \texttt{y} coordinates. Because a new node exists, D3 automatically shifts the coordinates of the other nodes to make room!
+\end{itemize}
+
+\textbf{Summary of the Full Interaction Flow:}
+\begin{codebox}[Action Pipeline]
+\begin{verbatim}
+1. Button Click inside visual node (D3StyleNode)
+2. Enriched callback fires (onDraftConfirm)
+3. Backend Database updated via API
+4. Local Flat Array State (backendNodes) is appended
+5. React re-renders, causing d3.stratify() to build a brand new N-ary Tree in memory
+6. layout(root) calculates new X/Y positions for the new tree
+7. React Flow visually shifts the nodes on screen
+\end{verbatim}
+\end{codebox}
+
+\subsection{2.4 Optimistic UI Updates: Renaming a Node}
+When a user renames a node, the UI updates instantly before the server even responds. This "optimistic" update provides a snappy user experience. Here is exactly how it works under the hood.
+
+\textbf{1. Identifying the Node:}
+When the user confirms the rename (e.g., by hitting Enter), the visual node triggers the callback \texttt{onDraftConfirm(id, newName, 'rename')}. The \texttt{id} parameter tells the system exactly which node is being modified.
+
+\textbf{2. Searching and Modifying the Object in State:}
+In \texttt{useCanvasState.js}, instead of waiting for the backend API, the frontend immediately modifies the flat \texttt{backendNodes} array. 
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasState.js - Optimistic Rename}]
+setBackendNodes(prevNodes => 
+    prevNodes.map(node => {
+        // Compare each node's ID to the target ID
+        if (node.id === targetId) {
+            // Change it: Return a new object with the updated name
+            return { ...node, name: newName };
+        }
+        // Return unchanged nodes as-is
+        return node;
+    })
+);
+
+// Fire the API request in the background
+nodeApi.renameNode(targetId, newName).catch(err => {
+    // If it fails, revert the state (rollback logic)
+});
+\end{lstlisting}
+
+\textbf{3. How the Comparison Works:}
+The \texttt{map()} function iterates over the entire \texttt{prevNodes} array (the flat array of all node objects). For every single object, it compares \texttt{node.id === targetId}.
+\begin{itemize}
+    \item If false: The exact same node object reference is returned.
+    \item If true: A completely new JavaScript object is created using the spread operator (\texttt{...node}), and the \texttt{name} property is overwritten with the \texttt{newName}.
+\end{itemize}
+
+By updating the flat array immutably, React detects the state change and immediately triggers the reactivity loop (Step 2.3). The layout engine re-runs, and the user instantly sees the new name on the canvas, completely unaware that the database is still processing the request in the background.
+
+\subsection{2.5 Optimistic UI Updates: Adding a Child Node}
+Adding a new child node follows a two-step optimistic workflow. It is slightly more complex than a rename because we do not have a database \texttt{\_id} until the server responds, but we still want the new node to appear on the canvas instantly.
+
+\textbf{Step 1: Spawning a Temporary "Draft" Node (Client-Side Only)}
+When the user clicks "Add Child", the \texttt{openNodeInput} function in \texttt{useCanvasActions.js} instantly appends a temporary "draft" node into the flat \texttt{backendNodes} array. 
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasActions.js - Injecting a Draft Node}]
+setBackendNodes(prev => {
+    // 1. Ensure the parent node is expanded so the child is visible
+    const expanded = prev.map(n => n.id === rfNode.id ? { ...n, isExpanded: true } : n);
+    
+    // 2. Append a temporary draft node to the array
+    return [...expanded, {
+        id: `draft-${Date.now()}`, // Temporary ID
+        parentId: rfNode.id,
+        name: '',                  // Empty name for the user to type in
+        _isDraft: true,
+        _draftMode: 'child',
+        _targetId: rfNode.id
+    }];
+});
+\end{lstlisting}
+
+\textbf{What happens visually?}
+Because \texttt{setBackendNodes} mutated the state, the Reactivity Loop (Step 2.3) triggers immediately. The D3 \texttt{d3.stratify()} and \texttt{layout(root)} engine re-runs on the entire tree, mapping out the new X/Y positions for all nodes to make physical space for this new child. React Flow then visually shifts the existing nodes and renders an empty text box bubble for the temporary draft node. The server hasn't even been contacted yet!
+
+\textbf{Step 2: Confirming and Swapping out the Draft Node}
+When the user finishes typing and presses "Enter", the \texttt{onDraftConfirm} callback fires in \texttt{useCanvasState.js}. The frontend finally contacts the backend, and then gracefully swaps the temporary draft node with the real one.
+
+\textbf{Execution Code:}
+\begin{lstlisting}[language=javascript, caption={useCanvasState.js - Confirming the Draft}]
+// 1. Await the server to create the actual database document
+const newNode = await nodeApi.createNode(mapId, { 
+    name, 
+    parentId: targetId, 
+    isExpanded: true 
+});
+
+// 2. Swap the temporary draft node for the real node
+setBackendNodes(prev => prev.map(n => 
+    n.id === id ? newNode : n 
+));
+\end{lstlisting}
+
+\textbf{How the comparison works here:}
+The \texttt{map()} function iterates over the flat array. It looks for the temporary draft ID (e.g., \texttt{"draft-12345"}). When it finds it, instead of mutating it, it completely discards the draft object and returns the \texttt{newNode} object that just came back from the MongoDB server (which contains the real \texttt{\_id} string). 
+
+The D3 engine recalculates one final time using the real DB object, but because the real node's visual data (name and parent) matches the draft node perfectly, the user sees no visual jump on the screen. It is a seamless transition from a temporary frontend object to a permanent database object.
+
+\subsection{2.6 The Magic of React Diffing: Why it Doesn't Flash}
+You might wonder: if the D3 engine re-runs on the entire tree every time a child node is added or a node is dragged, why doesn't the UI flash or reload? The secret lies in the difference between \textbf{recalculating data} and \textbf{re-rendering the visual HTML (DOM)}.
+
+\subsubsection*{1. D3 only calculates Data, not visuals}
+When the D3 engine re-runs, it doesn't touch the screen at all. It just creates a new JSON array in memory with updated X and Y numbers. This mathematical calculation takes less than 1 millisecond.
+
+\textbf{Step A: The Old JSON State (Before Adding)}
+\begin{lstlisting}[language=json]
+[
+  { "id": "NODE_1", "data": { "name": "Root" }, "position": { "x": 100, "y": 50 } },
+  { "id": "NODE_2", "data": { "name": "Child A" }, "position": { "x": 100, "y": 150 } }
+]
+\end{lstlisting}
+
+\textbf{Step B: The New JSON State (After Adding a Child to Root)}
+D3 recalculates the layout. It shifts \texttt{Child A} slightly to the left to make room for \texttt{Child B} on the right.
+\begin{lstlisting}[language=json]
+[
+  // Same ID. Name didn't change. X/Y shifted slightly.
+  { "id": "NODE_1", "data": { "name": "Root" }, "position": { "x": 100, "y": 50 } },
+  // Same ID. X/Y shifted to make room.
+  { "id": "NODE_2", "data": { "name": "Child A" }, "position": { "x": 50, "y": 150 } },
+  // BRAND NEW ID.
+  { "id": "draft-123", "data": { "name": "" }, "position": { "x": 150, "y": 150 } }
+]
+\end{lstlisting}
+
+\subsubsection*{2. React's Virtual DOM only updates what changed (Diffing)}
+When React Flow receives the new array of nodes from D3, it doesn't just delete all the nodes from the screen and draw them again. Instead, it compares the old array to the new array using the node's \texttt{id}.
+
+React looks at \texttt{NODE\_1} and \texttt{NODE\_2}:
+\begin{itemize}
+    \item \textit{"Did the name change?"} $\rightarrow$ If no, do nothing to the text.
+    \item \textit{"Did the color change?"} $\rightarrow$ If no, do nothing to the color.
+    \item \textit{"Did the X/Y coordinates change?"} $\rightarrow$ If yes, only update the CSS \texttt{transform} property to slide it smoothly to the new position.
+\end{itemize}
+
+\textbf{Under the Hood: The DOM Element (Generated by React Flow)}
+Because React Flow handles the actual HTML rendering for the canvas, it applies these exact X/Y coordinates directly as inline CSS \texttt{transform} rules on the node wrappers. Here is exactly what the browser's DOM looks like before and after React diffing. Notice that only the \texttt{translate(x, y)} string changes, meaning the browser doesn't have to rebuild the heavy HTML inside the node!
+
+\begin{lstlisting}[language=html, caption={React Flow DOM Injection}]
+<!-- BEFORE (X: 100, Y: 150) -->
+<div 
+  class="react-flow__node react-flow__node-d3Node" 
+  data-id="NODE_2" 
+  style="transform: translate(100px, 150px); pointer-events: all; z-index: 0;"
+>
+   <!-- Your D3StyleNode.jsx UI lives inside here... -->
+</div>
+
+<!-- AFTER DIFFING (X: 50, Y: 150) -->
+<!-- Only the inline 'style' attribute is updated by React! -->
+<div 
+  class="react-flow__node react-flow__node-d3Node" 
+  data-id="NODE_2" 
+  style="transform: translate(50px, 150px); pointer-events: all; z-index: 0;"
+>
+   <!-- Your D3StyleNode.jsx UI lives inside here... -->
+</div>
+\end{lstlisting}
+
+\subsubsection*{3. Only the new node is actually "built"}
+React looks at the new array and says: \textit{"Wait, there is a brand new \texttt{draft-123} ID here that wasn't here before!"}
+So, it leaves the HTML for the existing nodes completely alone and \textbf{only injects one single new HTML bubble} into the browser DOM for the new node.
+
+\subsubsection*{Drag and Drop works exactly the same way!}
+When you drag a node, the exact same cycle happens.
+
+\textbf{Step A: Old JSON State}
+\begin{lstlisting}[language=json]
+[
+  { "id": "NODE_1", "data": { "name": "Root" }, "position": { "x": 100, "y": 50 } }
+]
+\end{lstlisting}
+
+\textbf{Step B: New JSON State (Mouse moved by 5 pixels)}
+As your mouse moves, the layout engine updates the X/Y coordinates for the dragged node.
+\begin{lstlisting}[language=json]
+[
+  { "id": "NODE_1", "data": { "name": "Root" }, "position": { "x": 105, "y": 55 } }
+]
+\end{lstlisting}
+
+\textbf{Step C: The Comparison}
+React compares the two JSONs. It sees that \texttt{NODE\_1} still exists, the name is the same, but the position changed from \texttt{(100, 50)} to \texttt{(105, 55)}. It instantly updates the CSS \texttt{transform: translate(105px, 55px)} of the dragged node. Because this calculation and CSS update happens 60 times a second, the browser rendering feels incredibly fast, smooth, and native, without ever "reloading" the other nodes.
+
+\subsection{2.7 Architecture FAQ: Frontend vs Backend Pipeline}
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Q: Is this the whole pipeline? Could we just calculate the X/Y positions on the backend and send the final coordinates to React?]
+
+\textbf{Answer:}
+Yes, you \textit{could} do it on the backend, but it would completely destroy the user experience of the app. Doing this layout pipeline entirely on the frontend is the \textbf{industry standard} for interactive canvas apps (like Miro, Figma, or your Mind Map). Here is exactly why you want the frontend to handle this pipeline:
+
+\textbf{1. The Network Latency Problem (No 60fps Drag-and-Drop)} \\
+If the backend calculated the X/Y coordinates, every single user action would require a network request. Imagine dragging a node across the screen. To draw it smoothly, the browser updates 60 times a second. If the backend controlled coordinates, your app would have to make 60 API calls per second just to drag a node. Instead of feeling smooth and native, dragging would feel incredibly delayed, laggy, and stuttery depending on the user's WiFi speed.
+
+\textbf{2. You would lose Optimistic UI (Instant Updates)} \\
+Remember how adding a "draft" child node feels instant? That is only possible because the frontend knows how to run the D3 math itself. If the math lived on the backend, when a user clicked "Add Child", the browser wouldn't know where to draw the new bubble on the screen. It would have to wait 200–500ms for the server to reply with the new X/Y coordinates before the user saw anything happen.
+
+\textbf{3. Font and Screen Size Awareness} \\
+Calculating layout requires knowing how much physical space text takes up. The backend (running on a Linux server) has no idea what font the user's browser is using, what their screen size is, or what their current zoom level is. The frontend browser has access to the actual pixels and can calculate exact widths much more accurately.
+
+\textbf{Summary: The Smart Client vs. Dumb Server} \\
+What you have built is called the \textbf{"Smart Client, Dumb Server"} pattern, and it is the best way to build this app:
+\begin{itemize}
+    \item \textbf{The Backend (Dumb \& Safe):} Only cares about \textit{relationships} (e.g., "Node B is a child of Node A"). It stores the flat, lightweight JSON array.
+    \item \textbf{The Frontend (Smart \& Fast):} Takes those relationships and acts as a super-fast visual calculator, crunching the D3 math instantly so the user can drag, drop, expand, and type with zero lag.
+\end{itemize}
+\end{tcolorbox}
+
+\end{document}

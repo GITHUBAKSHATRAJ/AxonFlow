@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
-import { X, Upload, Info, AlertCircle } from 'lucide-react';
+import { X, Upload, Info } from 'lucide-react';
 
-const BulkImportModal = ({ onClose, onImport }) => {
+/**
+ * [NAMED COMPONENT]
+ * BulkImportModal is a Named Function component that renders the text-parsing overlay dialog.
+ */
+function BulkImportModal({ onClose, onImport }) {
+    // [STATE HOOKS]
+    // Tracks current textbox string content and loading flags during parsing operations
     const [text, setText] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const parseIndentedText = (inputText) => {
+    // [NAMED FUNCTION] - Custom algorithm to parse indentation into a parent-child tree structures
+    function parseIndentedText(inputText) {
         const lines = inputText.split('\n').filter(line => line.trim() !== '');
         const nodes = [];
         const stack = [];
@@ -15,10 +22,6 @@ const BulkImportModal = ({ onClose, onImport }) => {
             const indentMatch = line.match(/^(\s*)/);
             const indent = indentMatch ? indentMatch[0].length : 0;
             const name = line.trim();
-
-            // Simple heuristic: 4 spaces or 1 tab = 1 level
-            // We'll normalize by finding the minimum non-zero indent and using it as a unit
-            // But for simplicity, we'll just use the stack method based on absolute indent
             
             while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
                 stack.pop();
@@ -39,14 +42,15 @@ const BulkImportModal = ({ onClose, onImport }) => {
         });
 
         return nodes;
-    };
+    }
 
-    const handleImport = async () => {
+    // [NAMED FUNCTION] - Validate string content and trigger import callbacks
+    async function handleImport() {
         if (!text.trim()) return;
         setIsProcessing(true);
         try {
             const parsedNodes = parseIndentedText(text);
-            await onImport(parsedNodes);
+            await onImport(parsedNodes); // Triggers parent handler callback to update tree state
             onClose();
         } catch (err) {
             console.error('Import failed:', err);
@@ -54,11 +58,13 @@ const BulkImportModal = ({ onClose, onImport }) => {
         } finally {
             setIsProcessing(false);
         }
-    };
+    }
 
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-bg-card border border-border rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                
+                {/* Modal Header */}
                 <div className="p-8 border-b border-border flex justify-between items-center bg-bg-card">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center">
@@ -75,6 +81,7 @@ const BulkImportModal = ({ onClose, onImport }) => {
                 </div>
 
                 <div className="p-8 overflow-y-auto flex-1">
+                    {/* Instructions Banner */}
                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 mb-6 flex gap-4">
                         <Info className="text-blue-400 shrink-0" size={20} />
                         <div className="text-xs text-blue-100/70 leading-relaxed">
@@ -89,6 +96,7 @@ const BulkImportModal = ({ onClose, onImport }) => {
                         </div>
                     </div>
 
+                    {/* Controlled TextArea Element */}
                     <textarea
                         value={text}
                         onChange={(e) => setText(e.target.value)}
@@ -98,6 +106,7 @@ const BulkImportModal = ({ onClose, onImport }) => {
                     />
                 </div>
 
+                {/* Footer Controls */}
                 <div className="p-8 bg-bg-card-hover flex justify-end gap-4">
                     <button 
                         onClick={onClose}
@@ -116,6 +125,6 @@ const BulkImportModal = ({ onClose, onImport }) => {
             </div>
         </div>
     );
-};
+}
 
 export default BulkImportModal;

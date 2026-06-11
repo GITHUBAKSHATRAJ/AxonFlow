@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Map as MapIcon, Star, MoreVertical, Pencil, Copy, Folder, Tag, Trash2 } from 'lucide-react';
 import { templates } from '../Dashboard/TemplateGrid';
-import * as mapApi from '../../services/api/mapApi';
 
+/**
+ * [ARROW FUNCTION FOR SMALL UTILITY OPERATION]
+ * Standard arrow function style is perfect for small helper calculations.
+ */
 const getGradientClass = (id) => {
   if (!id) return 'bg-grad-1';
   let hash = 0;
@@ -11,28 +14,51 @@ const getGradientClass = (id) => {
   return `bg-grad-${index}`;
 };
 
-const MapCard = ({ map, onClick, onTogglePin, viewMode = 'grid', isTrash = false, onRestore, onTrashMap, onDuplicateMap }) => {
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * MapCard is a Named Function component that displays individual mind map items.
+ */
+function MapCard({ 
+  map, 
+  onClick, 
+  onTogglePin, 
+  viewMode = 'grid', 
+  isTrash = false, 
+  onRestore, 
+  onTrashMap, 
+  onDuplicateMap 
+}) {
   const isFavorite = map.isFavorite;
   const templateInfo = map.template ? templates.find(t => t.name === map.template) : null;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // [REACT HOOK: useRef]
+  // Holds a direct reference to the dropdown menu DOM node. We use this to detect
+  // whether mouse clicks land inside the box or outside it.
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
+  // [REACT HOOK: useEffect (Mousedown Listener / Click Outside Setup)]
+  // Sets up a global event listener to close the dropdown menu whenever the user clicks 
+  // anywhere outside the dropdown box.
+  useEffect(function () {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
+    // Cleanup function: automatically runs when component unmounts to prevent memory leaks.
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleDropdown = (e) => {
-    e.stopPropagation();
+  // [NAMED FUNCTION] - Toggle menu state
+  function toggleDropdown(e) {
+    e.stopPropagation(); // Stop event bubbling to parent card click triggers
     setIsDropdownOpen(!isDropdownOpen);
-  };
+  }
 
-  const handleAction = async (e, action) => {
+  // [NAMED FUNCTION] - Delegate menu choices back to container page handlers
+  async function handleAction(e, action) {
     e.stopPropagation();
     setIsDropdownOpen(false);
     
@@ -47,34 +73,42 @@ const MapCard = ({ map, onClick, onTogglePin, viewMode = 'grid', isTrash = false
     } catch (err) {
       console.error(`Failed to ${action}:`, err);
     }
-  };
+  }
 
-  const DropdownMenu = () => (
-    <div 
-      ref={dropdownRef}
-      className="absolute top-12 right-2 w-48 bg-bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
-    >
-      <div className="py-1">
-        <button onClick={(e) => handleAction(e, 'Rename')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
-          <Pencil size={14} /> Rename
-        </button>
-        <button onClick={(e) => handleAction(e, 'duplicate')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
-          <Copy size={14} /> Duplicate
-        </button>
-        <button onClick={(e) => handleAction(e, 'Move to')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
-          <Folder size={14} /> Move to...
-        </button>
-        <button onClick={(e) => handleAction(e, 'Edit Tags')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
-          <Tag size={14} /> Edit Tags
-        </button>
-        <div className="h-px bg-white/5 my-1" />
-        <button onClick={(e) => handleAction(e, 'trash')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
-          <Trash2 size={14} /> Move to Trash
-        </button>
+  // [CHILD PRESENTATIONAL HELPER COMPONENT]
+  // Renders the overlay menu panel
+  function DropdownMenu() {
+    return (
+      <div 
+        ref={dropdownRef}
+        className="absolute top-12 right-2 w-48 bg-bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+      >
+        <div className="py-1">
+          <button onClick={(e) => handleAction(e, 'Rename')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
+            <Pencil size={14} /> Rename
+          </button>
+          <button onClick={(e) => handleAction(e, 'duplicate')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
+            <Copy size={14} /> Duplicate
+          </button>
+          <button onClick={(e) => handleAction(e, 'Move to')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
+            <Folder size={14} /> Move to...
+          </button>
+          <button onClick={(e) => handleAction(e, 'Edit Tags')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-muted hover:bg-white/5 hover:text-text-h transition-colors">
+            <Tag size={14} /> Edit Tags
+          </button>
+          <div className="h-px bg-white/5 my-1" />
+          <button onClick={(e) => handleAction(e, 'trash')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 transition-colors">
+            <Trash2 size={14} /> Move to Trash
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
+  /* 
+    [CONDITIONAL RENDER RETURNS]
+    If viewMode is list, we return the horizontal bar layout. Otherwise, we return the standard grid box.
+  */
   if (viewMode === 'list') {
     return (
       <div 
@@ -158,6 +192,6 @@ const MapCard = ({ map, onClick, onTogglePin, viewMode = 'grid', isTrash = false
       </div>
     </div>
   );
-};
+}
 
 export default MapCard;

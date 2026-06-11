@@ -1,7 +1,14 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 
-const ComingSoonModal = ({ comingSoonTemplate, setComingSoonTemplate }) => {
+/**
+ * [CHILD COMPONENT / DIALOG COMPONENT]
+ * ComingSoonModal displays notification feedback overlays.
+ * 
+ * Concept: Standard conditional return rendering where we return 'null' (rendering nothing)
+ * if 'comingSoonTemplate' is empty.
+ */
+function ComingSoonModal({ comingSoonTemplate, setComingSoonTemplate }) {
   if (!comingSoonTemplate) return null;
 
   return (
@@ -21,6 +28,6 @@ const ComingSoonModal = ({ comingSoonTemplate, setComingSoonTemplate }) => {
       </div>
     </div>
   );
-};
+}
 
 export default ComingSoonModal;

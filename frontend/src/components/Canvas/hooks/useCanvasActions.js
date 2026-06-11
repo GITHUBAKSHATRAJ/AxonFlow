@@ -5,10 +5,15 @@ import { parseIndentedText } from '../../../utils/flowUtils';
 let clipboard = null;
 
 /**
- * useCanvasActions hook
- * Handles complex business actions like recursive deletion, branch cloning, and panel management.
+ * [CUSTOM HOOK - useCanvasActions]
+ * Concept: Manages side-effect operations (cloning, branch deletions, panel toggling) 
+ * for the interactive Canvas.
+ * 
+ * Named Function rule applies here: The main custom hook function is declared as a named function, 
+ * while small utility/callback handlers inside are defined via Arrow Functions wrapped in useCallback 
+ * to preserve referential identity across renders.
  */
-export const useCanvasActions = ({
+export function useCanvasActions({
     mapId,
     setBackendNodes,
     backendNodesRef,
@@ -18,7 +23,7 @@ export const useCanvasActions = ({
     setLinksOpen,
     setFilesOpen,
     setAiOpen
-}) => {
+}) {
 
     // ── Helper: Open Input for New Node or Rename ──
     const openNodeInput = useCallback((mode, rfNode) => {
@@ -188,4 +193,4 @@ export const useCanvasActions = ({
         openFiles,
         openAI
     };
-};
+}

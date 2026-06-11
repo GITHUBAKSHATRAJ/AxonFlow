@@ -2,7 +2,14 @@ import React from 'react';
 import { LayoutGrid, AlignCenter, CircleDot, Palette, Upload } from 'lucide-react';
 import { COLOR_PALETTES } from '../../utils/flowUtils';
 
-const ActionToolbar = ({ 
+/**
+ * [CHILD COMPONENT / PRESENTATIONAL COMPONENT]
+ * ActionToolbar renders layout switching, bulk import triggers, and theme palettes options.
+ * 
+ * Concept: Uses destructured configuration props to render control controls. It alerts
+ * parent handlers via callback functions when options are changed.
+ */
+function ActionToolbar({ 
     layoutMode, 
     setLayoutMode, 
     colorPalette, 
@@ -10,11 +17,11 @@ const ActionToolbar = ({
     showPaletteMenu,
     setShowPaletteMenu,
     onOpenImport
-}) => {
+}) {
     return (
         <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 100, display: 'flex', gap: '8px', alignItems: 'center' }}>
             
-            {/* Layout Toggle Group */}
+            {/* Layout Mode Toggles Map */}
             {[
                 ['horizontal', 'H-Tree', AlignCenter], 
                 ['vertical', 'V-Tree', LayoutGrid], 
@@ -63,7 +70,7 @@ const ActionToolbar = ({
 
             <div style={{ width: '1px', height: '28px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
 
-            {/* Color Palette Picker */}
+            {/* Color Palette Picker Menu */}
             <div style={{ position: 'relative' }}>
                 <button 
                     onClick={() => setShowPaletteMenu(p => !p)}
@@ -126,6 +133,6 @@ const ActionToolbar = ({
             </div>
         </div>
     );
-};
+}
 
 export default ActionToolbar;
