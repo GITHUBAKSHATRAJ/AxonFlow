@@ -722,6 +722,63 @@ Structured Result → {parent_id, nodes: [...]} or {tree: {...}}
 
 ---
 
+## 🧩 Use Case Diagram
+
+```mermaid
+flowchart LR
+    User(((User)))
+    
+    subgraph Boundary ["AxonFlow System Boundary"]
+        subgraph Group1 ["Workspace & File Management"]
+            UC1(["Create & Organize Workspaces/Folders"])
+            UC2(["Manage Mind Maps (Duplicate, Trash, Favorite)"])
+        end
+        
+        subgraph Group2 ["Canvas Interactions"]
+            UC3(["Edit Nodes (Add, Rename, Delete)"])
+            UC4(["Reparent Nodes via Drag & Drop"])
+            UC5(["Customize Canvas (Layouts, Colors)"])
+            UC6(["Attach Content (Notes, Links, Files)"])
+            UC7(["Bulk Import Indented Text"])
+        end
+        
+        subgraph Group3 ["AI Capabilities"]
+            UC8(["Select Ollama LLM Model"])
+            UC9(["Stream Node Subtopics via SSE"])
+            UC10(["Auto-generate Complete Mind Maps"])
+        end
+    end
+    
+    AIEngine(((AI Engine)))
+
+    %% User Connections
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    User --> UC7
+    User --> UC8
+    User --> UC9
+    User --> UC10
+
+    %% AI Connections
+    UC9 --> AIEngine
+    UC10 --> AIEngine
+
+    %% Styling
+    classDef actor fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef usecase fill:#0f172a,stroke:#06b6d4,stroke-width:1.5px,color:#e2e8f0;
+    classDef system fill:#090d16,stroke:#3b82f6,stroke-dasharray: 5 5,color:#fff;
+    
+    class User,AIEngine actor;
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10 usecase;
+    style Boundary fill:#070a13,stroke:#1e293b,stroke-width:2px;
+```
+
+---
+
 ## 📊 UML Class Diagram
 
 ```
